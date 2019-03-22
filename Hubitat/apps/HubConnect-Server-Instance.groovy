@@ -307,7 +307,7 @@ private createHubChildDevice()
 		
 		try
 		{
-			addChildDevice("shackrat", "HubConnect Beacon Sensor", "hub-${clientIP}", null, [name: "HubConnect Hub", label: clientName])
+			addChildDevice("shackrat", "HubConnect Remote Hub", "hub-${clientIP}", null, [name: "HubConnect Hub", label: clientName])
 		}
 		catch (errorException)
 		{
