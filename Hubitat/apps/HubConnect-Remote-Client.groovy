@@ -563,7 +563,7 @@ def syncDevice(deviceId, deviceType)
 */
 def sendGetCommand(command)
 {
-	def serverURI = state.serverURI + command + "?access_token=" + state.serverToken
+	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
 
 	def requestParams =
 	[
@@ -595,7 +595,7 @@ def sendGetCommand(command)
 */
 def sendPostCommand(command, data)
 {
-	def serverURI = state.serverURI + command + "?access_token=" + state.serverToken
+	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
 
 	def requestParams =
 	[
@@ -1127,5 +1127,5 @@ def aboutPage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.0}
+def getModuleBuild(){1.1}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

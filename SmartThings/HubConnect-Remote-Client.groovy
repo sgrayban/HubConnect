@@ -557,7 +557,7 @@ def syncDevice(deviceId, deviceType)
 */
 def sendGetCommand(command)
 {
-	def serverURI = state.serverURI + command + "?access_token=" + state.serverToken
+	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
 
 	def requestParams =
     [
@@ -589,7 +589,7 @@ def sendGetCommand(command)
 */
 def sendPostCommand(command, data)
 {
-	def serverURI = state.serverURI + command + "?access_token=" + state.serverToken
+	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
 
 	def requestParams =
     [
@@ -1125,5 +1125,5 @@ def customDevicePage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.0}
+def getModuleBuild(){1.1}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
