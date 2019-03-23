@@ -874,7 +874,7 @@ def devicePage()
 		{
 			section("-= Required Drivers =-")
 			{
-				paragraph "Please make sure the following native drivers are installed on the Coordinator (master) hub before clicking \"Done\": ${requiredDrivers.toString()}" 
+				paragraph "Please make sure the following native drivers are installed on the Remote hub before clicking \"Done\": ${requiredDrivers.toString()}" 
 			}
 		}
 	}
