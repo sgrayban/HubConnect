@@ -131,7 +131,7 @@ def customDriverPage()
 				href "createCustomDriver", title: "${driver.driver} (${groupname})", description: "${driver.attr}", params: [groupname: groupname]
 			}
 
-			href "createCustomDriver", title: "Add Driver", description: "Define a custom driver type.", params: null
+			href "createCustomDriver", title: "Add Driver", description: "Define a custom driver type.", params: [newdriver: true]
 		}
 	}
 }
@@ -149,12 +149,9 @@ def createCustomDriver(params)
 	def dtMap
 	if (params?.groupname)
 	{
-		log.trace params?.groupname
 		dtMap = state?.customDrivers[params.groupname]
-		log.debug dtMap
 		if (dtMap)
 		{
-			log.warn "Setting group: ${params.groupname}"
 			app.updateSetting("newDev_AttributeGroup", [type: "string", value: params.groupname])
 			app.updateSetting("newDev_DriverName", [type: "string", value: dtMap.driver])
 
@@ -165,42 +162,48 @@ def createCustomDriver(params)
 			}
 		}
 	}
-	else
+	else if (params?.newdriver == true)
 	{
-		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
-		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
+		app.updateSetting("newDev_AttributeGroup", [type: "string", value: null])
+		app.updateSetting("newDev_DriverName", [type: "string", value: null])
 		8.times
 		{
-			app.updateSetting("attr_${it+1}", [type: "string", value: ""])
+			app.updateSetting("attr_${it+1}", [type: "string", value: null])
 		}
+		params.newdriver = false
 	}
-
-	dynamicPage(name: "createCustomDriver", uninstall: false, install: false, nextPage: "customDriverPage")
+	
+	dynamicPage(name: "createCustomDriver", uninstall: false, install: false, nextPage: null)
 	{
 		section("<b>-= Configure Driver =- </b>")
 		{ 
-			if (dtMap) log.warn "DEMAP"
 			if (dtMap) paragraph "Attribute Class Name (letters & numbers only):<br />${params.groupname}"
 			else input "newDev_AttributeGroup", "text", title: "Attribute Class Name (letters & numbers only):", required: true, defaultValue: null
-			input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: null
+			input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: null, submitOnChange: true
 		}
-		section("<b>-= Supported Attributes =- </b>")
-		{ 
-			input "attr_1", "string", title: "Attribute 1/8:", description: "Note: Device selection will be based on this attibute.", required: true, multiple: false, defaultValue: null, submitOnChange: true
-			input "attr_2", "string", title: "Attribute 2/8:", required: false, multiple: false, defaultValue: null
-			input "attr_3", "string", title: "Attribute 3/8:", required: false, multiple: false, defaultValue: null
-			input "attr_4", "string", title: "Attribute 4/8:", required: false, multiple: false, defaultValue: null
-			input "attr_5", "string", title: "Attribute 5/8:", required: false, multiple: false, defaultValue: null
-			input "attr_6", "string", title: "Attribute 6/8:", required: false, multiple: false, defaultValue: null
-			input "attr_7", "string", title: "Attribute 7/8:", required: false, multiple: false, defaultValue: null
-			input "attr_8", "string", title: "Attribute 8/8:", required: false, multiple: false, defaultValue: null
-		}
-		if (dtMap || (newDev_AttributeGroup?.size() && newDev_DriverName?.size() && attr_1?.size()))
+		if (dtMap || (newDev_AttributeGroup?.size() && newDev_DriverName?.size()))
 		{
-			section("<b>-= Save Custom Device Type =- </b>")
+			section("<b>-= Supported Attributes =- </b>")
 			{ 
-				href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: params?.groupname]
-				href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: params?.groupname]			
+				input "attr_1", "string", title: "Attribute 1/8:", description: "Note: Device selection will be based on this attibute.", required: true, multiple: false, defaultValue: null, submitOnChange: true
+				if (attr_1?.size())
+				{
+					input "attr_2", "string", title: "Attribute 2/8:", required: false, multiple: false, defaultValue: null
+					input "attr_3", "string", title: "Attribute 3/8:", required: false, multiple: false, defaultValue: null
+					input "attr_4", "string", title: "Attribute 4/8:", required: false, multiple: false, defaultValue: null
+					input "attr_5", "string", title: "Attribute 5/8:", required: false, multiple: false, defaultValue: null
+					input "attr_6", "string", title: "Attribute 6/8:", required: false, multiple: false, defaultValue: null
+					input "attr_7", "string", title: "Attribute 7/8:", required: false, multiple: false, defaultValue: null
+					input "attr_8", "string", title: "Attribute 8/8:", required: false, multiple: false, defaultValue: null
+				}
+			}
+			if (attr_1?.size())
+			{
+				section("<b>-= Save Custom Device Type =- </b>")
+				{ 
+					href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: params?.groupname]
+					href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: params?.groupname]
+				}			
 			}		
 		}
 	}
@@ -260,7 +263,7 @@ def saveCustomDriverPage(params)
 	}
 	else return createCustomDevice()
 
-	log.debug "custom driver map: ${state.customDrivers}"
+	log.debug "Custom driver map: ${state.customDrivers}"
 
 	dynamicPage(name: "saveCustomDriverPage", uninstall: false, install: false)
 	{
@@ -410,5 +413,5 @@ def aboutPage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.0}
+def getModuleBuild(){1.1}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
