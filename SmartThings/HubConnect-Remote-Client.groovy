@@ -249,7 +249,7 @@ def remoteDeviceCommand()
 */
 def serverModeChangeEvent()
 {
-    def modeName = params?.name
+    def modeName = params?.name ? URLDecoder.decode(params?.name) : ""
 	if (enableDebug) log.debug "Received mode event from server: ${modeName}"
 
     def modeExists = location.modes?.find{it.name == modeName}
@@ -1125,5 +1125,5 @@ def customDevicePage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.1}
+def getModuleBuild(){1.2}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

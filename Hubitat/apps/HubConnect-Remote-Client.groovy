@@ -249,7 +249,7 @@ def remoteDeviceCommand()
 */
 def serverModeChangeEvent()
 {
-    def modeName = params?.name
+    def modeName = params?.name ? URLDecoder.decode(params?.name) : ""
 
     if (location.modes?.find{it.name == modeName})
 	{
@@ -1127,5 +1127,5 @@ def aboutPage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.1}
+def getModuleBuild(){1.2}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

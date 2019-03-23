@@ -215,7 +215,7 @@ def realtimeModeChangeHandler(evt)
 	def newMode = evt.value
 
 	if (enableDebug) log.debug "Sending mode change event to ${clientName}: ${newMode}"
-	sendGetCommand("/modes/${newMode}")
+	sendGetCommand("/modes/${URLEncoder.encode(newMode)}")
 }
 
 
@@ -665,14 +665,14 @@ def mainPage()
 
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
-		if (clientURL)
+		if (state.clientURI)
 		{
 			section("<h2>${app.label}</h2>"){}
 		}
 		section("-= <b>Main Menu</b> =-")
 		{
-			href "connectPage", title: "Connect to Client Hub...", description: "", state: clientURL ? "complete" : null
-			if (clientURL)
+			href "connectPage", title: "Connect to Client Hub...", description: "", state: state.clientURI ? "complete" : null
+			if (state.clientURI)
 			{
 				href "devicePage", title: "Connect local devices to Client Hub...", description: "", state: devicesConfigured ? "complete" : null
 				input "pushModes", "bool", title: "Push mode changes to Client Hub?", description: "", defaultValue: false
@@ -773,7 +773,7 @@ def registerPing()
 		// A little recovery for system mode, in case the hub coming online missed a mode change
 		if (pushModes)
 		{	
-			sendGetCommand("/modes/${location.mode}")
+			sendGetCommand("/modes/${URLEncoder.encode(location.mode)}")
 		}
 
 		state.connectStatus = "online"
@@ -849,7 +849,7 @@ def setCommStatus(commDisabled = false)
 */
 def pushCurrentMode()
 {
-	sendGetCommand("/modes/${location.mode}")
+	sendGetCommand("/modes/${URLEncoder.encode(location.mode)}")
 }
 
 
@@ -1212,5 +1212,5 @@ def customDevicePage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.0}
+def getModuleBuild(){1.1}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
