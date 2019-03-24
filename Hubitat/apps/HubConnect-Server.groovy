@@ -39,6 +39,7 @@ preferences
 	page(name: "aboutPage")
 	page(name: "customDriverPage")
 	page(name: "createCustomDriver")
+	page(name: "editCustomDriver")
 	page(name: "saveCustomDriverPage")
 }
 
@@ -128,7 +129,7 @@ def customDriverPage()
 			state.customDrivers.each
 			{
 			  groupname, driver ->
-				href "createCustomDriver", title: "${driver.driver} (${groupname})", description: "${driver.attr}", params: [groupname: groupname]
+				href "editCustomDriver", title: "${driver.driver} (${groupname})", description: "${driver.attr}", params: [groupname: groupname]
 			}
 
 			href "createCustomDriver", title: "Add Driver", description: "Define a custom driver type.", params: [newdriver: true]
@@ -138,17 +139,17 @@ def customDriverPage()
 
 
 /*
-	createCustomDriver
+	editCustomDriver
     
-	Purpose: Displays the page where shackrat's custom device drivers (SmartPlug, Z-Wave Repeater) are selected to be linked to the controller hub.
+	Purpose: Loads the custom driver details into preferences so they can be edited in the UI.
 
-	Notes: 	First attempt at organization.
+	Notes: 	This requires a page refresh in order to work properly.  Hubitat cache issue??
 */
-def createCustomDriver(params)
+def editCustomDriver(params)
 {
-	def dtMap
 	if (params?.groupname)
 	{
+		log.trace params
 		dtMap = state?.customDrivers[params.groupname]
 		if (dtMap)
 		{
@@ -161,23 +162,56 @@ def createCustomDriver(params)
 				app.updateSetting("attr_${idx+1}", [type: "string", value: attr])
 			}
 		}
-	}
-	else if (params?.newdriver == true)
-	{
-		app.updateSetting("newDev_AttributeGroup", [type: "string", value: null])
-		app.updateSetting("newDev_DriverName", [type: "string", value: null])
-		8.times
+		params.editgroup = params.groupname
+		params.groupname = null
+		dynamicPage(name: "editCustomDriver", uninstall: false, install: false, refreshInterval: 1)
 		{
-			app.updateSetting("attr_${it+1}", [type: "string", value: null])
+			section("Loading, please wait..."){}
+		}
+	}
+	else driverPage("editCustomDriver", params?.editgroup)
+}
+
+
+/*
+	createCustomDriver
+    
+	Purpose: Clears out all preferences so the UI page displays as if it were new.
+
+	Notes: 	This requires a page refresh in order to work properly.  Hubitat cache issue??
+*/
+def createCustomDriver(params)
+{
+	if (params?.newdriver == true)
+	{
+		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
+		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
+		app.updateSetting("attr_1", [type: "enum", value: ""])
+		7.times
+		{
+			app.updateSetting("attr_${it+1}", [type: "string", value: ""])
 		}
 		params.newdriver = false
 	}
 	
-	dynamicPage(name: "createCustomDriver", uninstall: false, install: false, nextPage: null)
+	driverPage("createCustomDriver")
+}
+
+
+/*
+	createCustomDriver
+    
+	Purpose: Displays the page where shackrat's custom device drivers (SmartPlug, Z-Wave Repeater) are selected to be linked to the controller hub.
+
+	Notes: 	First attempt at organization.
+*/
+def driverPage(pageName, groupName = null)
+{
+	dynamicPage(name: pageName, uninstall: false, install: false)
 	{
 		section("<b>-= Configure Driver =- </b>")
 		{ 
-			if (dtMap) paragraph "Attribute Class Name (letters & numbers only):<br />${params.groupname}"
+			if (groupName) paragraph "Attribute Class Name (letters & numbers only):<br />${groupName}"
 			else input "newDev_AttributeGroup", "text", title: "Attribute Class Name (letters & numbers only):", required: true, defaultValue: null
 			input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: null, submitOnChange: true
 		}
@@ -185,7 +219,7 @@ def createCustomDriver(params)
 		{
 			section("<b>-= Supported Attributes =- </b>")
 			{ 
-				input "attr_1", "string", title: "Attribute 1/8:", description: "Note: Device selection will be based on this attibute.", required: true, multiple: false, defaultValue: null, submitOnChange: true
+				input "attr_1", "enum", title: "Attribute 1/8 (This will act as the primary capability for selecting devices):", required: true, multiple: false, options: ATTRIBUTE_TO_SELECTOR, defaultValue: null, submitOnChange: true
 				if (attr_1?.size())
 				{
 					input "attr_2", "string", title: "Attribute 2/8:", required: false, multiple: false, defaultValue: null
@@ -201,8 +235,8 @@ def createCustomDriver(params)
 			{
 				section("<b>-= Save Custom Device Type =- </b>")
 				{ 
-					href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: params?.groupname]
-					href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: params?.groupname]
+					href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: groupName]
+					href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: groupName]
 				}			
 			}		
 		}
@@ -224,7 +258,8 @@ def saveCustomDriverPage(params)
 		state?.customDrivers.remove(params.delete)
 		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
 		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
-		8.times
+		app.updateSetting("attr_1", [type: "enum", value: ""])
+		7.times
 		{
 			app.updateSetting("attr_${it+1}", [type: "string", value: ""])
 		}
@@ -413,5 +448,5 @@ def aboutPage()
 }
 
 def getCurrentVersion(){1.0}
-def getModuleBuild(){1.1}
+def getModuleBuild(){1.2}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
