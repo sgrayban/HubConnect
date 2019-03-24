@@ -335,7 +335,7 @@ def realtimeEventHandler(evt)
 
 	Notes: Calls getSupportedAttributes() to obtain list of attributes.
 */
-def getAttributeMap(device, deviceType)
+def getAttributeMap(device, deviceClass)
 {
 	def deviceAttributes = getSupportedAttributes(deviceClass)
 	def currentAttributes = []
@@ -355,7 +355,7 @@ def getAttributeMap(device, deviceType)
 
 	Notes: Called from getAttributeMap().
 */
-def getSupportedAttributes(driverType)
+def getSupportedAttributes(deviceClass)
 {
 	if (NATIVE_DEVICES.find{it.key == deviceClass}) return NATIVE_DEVICES[deviceClass].attr
 	if (state.customDrivers.find{it.key == deviceClass}) return state.customDrivers[deviceClass].attr
