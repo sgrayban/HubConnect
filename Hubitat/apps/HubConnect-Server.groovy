@@ -72,6 +72,7 @@ preferences
 	"speed":			"fanControl",
 	"switch":			"switch",
 	"temperature":		"temperatureMeasurement",
+	"thermostat":		"thermostat",
 	"valve":			"valve",
 	"water":			"waterSensor",
 	"windowshade":		"windowShade"
@@ -120,8 +121,6 @@ def mainPage()
 */
 def customDriverPage()
 {
-	log.debug "custom driver map: ${state.customDrivers}"
-	
 	dynamicPage(name: "customDriverPage", uninstall: false, install: false, nextPage: "mainPage")
 	{
 		section("Currently Installed Custom Drivers")
@@ -149,8 +148,7 @@ def editCustomDriver(params)
 {
 	if (params?.groupname)
 	{
-		log.trace params
-		dtMap = state?.customDrivers[params.groupname]
+		def dtMap = state?.customDrivers[params.groupname]
 		if (dtMap)
 		{
 			app.updateSetting("newDev_AttributeGroup", [type: "string", value: params.groupname])
@@ -215,7 +213,7 @@ def driverPage(pageName, groupName = null)
 			else input "newDev_AttributeGroup", "text", title: "Attribute Class Name (letters & numbers only):", required: true, defaultValue: null
 			input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: null, submitOnChange: true
 		}
-		if (dtMap || (newDev_AttributeGroup?.size() && newDev_DriverName?.size()))
+		if (newDev_AttributeGroup?.size() && newDev_DriverName?.size())
 		{
 			section("<b>-= Supported Attributes =- </b>")
 			{ 
@@ -283,14 +281,14 @@ def saveCustomDriverPage(params)
 		
 		def selector = ATTRIBUTE_TO_SELECTOR.find{it.key == attr_1}
 
-		Map dtMap =
+		state.customDrivers[deviceClass] = 
 		[
 			driver: newDev_DriverName,
 			selector: selector.value,
 			attr: attr
 		]
-		
-		state.customDrivers[newDev_AttributeGroup] = dtMap
+
+		log.debug state.customDrivers
 		saveCustomDrivers()
 
 		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
@@ -298,7 +296,7 @@ def saveCustomDriverPage(params)
 	}
 	else return createCustomDevice()
 
-	log.debug "Custom driver map: ${state.customDrivers}"
+	log.debug "Saving custom driver map: ${state.customDrivers}"
 
 	dynamicPage(name: "saveCustomDriverPage", uninstall: false, install: false)
 	{
@@ -338,6 +336,9 @@ def saveCustomDrivers()
 def installed()
 {
 	log.info "${app.name} Installed"
+
+	state.customDrivers = [:]
+
 	initialize()
 }
 
@@ -355,7 +356,7 @@ def updated()
 	
 	if (state?.customDrivers == null)
 	{
-		state.customDrivers = []
+		state.customDrivers = [:]
 	}
 	
 	unsubscribe()
@@ -447,6 +448,6 @@ def aboutPage()
 	}
 }
 
-def getCurrentVersion(){1.0}
-def getModuleBuild(){1.2}
+def getCurrentVersion(){1.1}
+def getModuleBuild(){1.4}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

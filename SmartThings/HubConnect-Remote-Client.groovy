@@ -196,7 +196,7 @@ def remoteDeviceCommand()
 		return jsonResponse([status: "error"])
 	}
 	
-	if (enableDebug) log.info "Received command from server: [\"${device.label}\": ${params.deviceCommand}]"
+	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
 	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
@@ -335,7 +335,7 @@ def realtimeEventHandler(evt)
 
 	Notes: Calls getSupportedAttributes() to obtain list of attributes.
 */
-def getAttributeMap(device, deviceType)
+def getAttributeMap(device, deviceClass)
 {
 	def deviceAttributes = getSupportedAttributes(deviceClass)
 	def currentAttributes = []
@@ -355,7 +355,7 @@ def getAttributeMap(device, deviceType)
 
 	Notes: Called from getAttributeMap().
 */
-def getSupportedAttributes(driverType)
+def getSupportedAttributes(deviceClass)
 {
 	if (NATIVE_DEVICES.find{it.key == deviceClass}) return NATIVE_DEVICES[deviceClass].attr
 	if (state.customDrivers.find{it.key == deviceClass}) return state.customDrivers[deviceClass].attr
@@ -447,10 +447,10 @@ def deviceEvent()
 	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${serverIP}:${params.deviceId}"}
 	if (childDevice)
 	{
-		if (enableDebug) log.debug "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
-		sendEvent("${serverIP}:${params.deviceId}", [name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
+		if (enableDebug) log.debug "Received event from Server/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
+		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
 	}
-	else if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
+	else if (enableDebug) log.warn "Ignoring Received event from Server: Device Not Found!"
 }
 
 
@@ -495,22 +495,35 @@ def saveDevices()
 */
 private createLinkedChildDevice(dev, driverType)
 {
-	if (getChildDevices()?.find{it.deviceNetworkId == "${serverIP}:${dev.id}"})
+	def childDevice = getChildDevices()?.find{it.deviceNetworkId == "${serverIP}:${dev.id}"}
+	if (childDevice)
 	{
 		// Device exists
 		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
+        return
 	}
 	else
 	{
 		if (enableDebug) log.trace "Creating Device ${driverType} - ${dev.label}... ${serverIP}:${dev.id}..."
-		addChildDevice("shackrat", driverType, "${serverIP}:${dev.id}", null, [name: dev.label, label: dev.label])
+		try
+		{
+			childDevice = addChildDevice("shackrat", driverType, "${clientIP}:${dev.id}", null, [name: dev.label, label: dev.label])
+		}
+		catch (errorException)
+		{
+			log.error "... Uunable to create device ${dev.label}: ${errorException}."
+			childDevice = null
+		}
 	}
 
 	// Set the value of the primary attributes
-	dev.attr.each
+	if (childDevice)
 	{
-	  attribute ->
-		sendEvent("${serverIP}:${dev.id}", [name: attribute.name, value: attribute.value, unit: attribute.unit])
+		dev.attr.each
+		{
+	 	 attribute ->
+			childDevice.sendEvent([name: attribute.name, value: attribute.value, unit: attribute.unit])
+		}
 	}
 }
 
@@ -540,7 +553,7 @@ def syncDevice(deviceId, deviceType)
 			data?.currentValues.each
 			{
 			  attr ->
-				sendEvent(deviceId, [name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
+				childDevice.sendEvent([name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
 			}
 		}
 	}
@@ -664,7 +677,7 @@ def saveCustomDrivers()
 			{
 				log.debug "Removing custom device selector: ${key}"
 				unsubscribe(settings."custom_${key}")
-				app.removeSetting("custom_${key}")
+				app.deleteSetting("custom_${key}")
 			}
 		}
 		state.customDrivers = request.JSON.customdrivers
@@ -688,9 +701,10 @@ def installed()
 {
 	log.info "${app.name} Installed"
 
-	state.saveDevices = false
-
 	initialize()
+	
+	state.appInstalled = true
+	state.connected = false
 }
 
 
@@ -707,10 +721,12 @@ def updated()
 
 	if (state?.customDrivers == null)
 	{
-		state.customDrivers = []
+		state.customDrivers = [:]
 	}
 
 	initialize()
+	state.appInstalled = true
+	state.connected = isConnected
 }
 
 
@@ -725,12 +741,16 @@ def initialize()
 {
 	log.info "${app.name} Initialized"
 	unschedule()
-
+	
 	state.commDisabled = false
+	state.saveDevices = false
 
-	saveDevicesToServer()
-	subscribeLocalEvents()
-	runEvery1Minute("appHealth")
+	if (isConnected)
+	{
+		saveDevicesToServer()
+		subscribeLocalEvents()
+		runEvery1Minute("appHealth")
+	}
 }
 
 
@@ -758,8 +778,8 @@ def mainPage()
 	{
 		section("-= Main Menu=-")
 		{
-			href "connectPage", title: "Connect to Server Hub...", description: "", state: serverURL ? "complete" : null
-			href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+			href "connectPage", title: "Connect to Server Hub...", description: "", state: isConnected ? "complete" : null
+			if (isConnected) href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
 		}
 		section("-= Debug Menu =-")
 		{
@@ -787,12 +807,21 @@ def connectPage()
 		state.accessToken = createAccessToken()
 	}
 
-	def connected = false
     def responseText = ""
 	if (serverKey)
 	{
-		def accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
-		if (accessData && accessData?.token)
+		def accessData
+		try
+		{
+			accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
+		}
+		catch (errorException)
+		{
+			log.error "Error reading connection key: ${errorException}."
+			responseText = "<div style=\"color: red\">Error: Corrupt or invalid connection key</div>"
+			state.connected = false
+		}
+        if (accessData && accessData?.token)
 		{
 			// Set the coordinator hub details
 			state.clientURI = accessData.uri
@@ -802,11 +831,33 @@ def connectPage()
 			// Send our connect string to the coordinator
 			def connectKey = new groovy.json.JsonBuilder([uri: apiServerUrl("/api/smartapps/installations/${app.id}"), type: "remote", token: state.accessToken, mac: location.hubs[0].id]).toString().bytes.encodeBase64()
 			def response = sendGetCommand("/connect/${connectKey}")
-			if (response.status == "success") connected = true
-            else responseText == "Error: ${response?.message}"
+
+			if ("${response.status}" == "success")
+			{
+				state.connected = true
+			}
+			else
+			{
+				state.connected = false
+				responseText = "<div style=\"color: red\">Error: ${response?.message}</div>"
+			}
 		}
 	}
 
+	// Reset connection data if handshake failed
+	if (serverKey == null || disconnectHub || state.connected == false)
+	{
+		state.clientURI = null
+		state.clientToken = null
+		state.clientType = null
+		state.connected = false
+		if (disconnectHub)
+		{
+			app.updateSetting("serverKey", [type: "string", value: ""])
+			app.updateSetting("disconnectHub", [type: "bool", value: false])
+		}
+	}
+    
 	dynamicPage(name: "connectPage", uninstall: false, install: false)
 	{
 		section("Server Details")
@@ -815,8 +866,12 @@ def connectPage()
 			if (serverIP) input "serverKey", "string", title: "Paste the server connection key here:", required: false, defaultValue: null, submitOnChange: true
 		}
 		section()
-		{ 
-			if (connected) paragraph "Connected!"
+		{
+			if (state.connected)
+			{
+				paragraph "Connected!"
+				input "disconnectHub", "bool", title: "Disconnect Server Hub...", description: "This will erase the connection key.", required: false, submitOnChange: true
+			}
 			else paragraph "Not Connected :: ${responseText}", required: true
 		}
 	}
@@ -1124,6 +1179,7 @@ def customDevicePage()
 	}
 }
 
-def getCurrentVersion(){1.0}
-def getModuleBuild(){1.2}
+def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
+def getCurrentVersion(){1.1}
+def getModuleBuild(){1.4}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

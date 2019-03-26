@@ -146,7 +146,7 @@ def syncDevice(deviceId, deviceType)
 			data?.currentValues.each
 			{
 			  attr ->
-				sendEvent(deviceId, [name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
+				childDevice.sendEvent([name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
 			}
 		}
 	}
@@ -196,7 +196,7 @@ def deviceEvent()
 	if (childDevice)
 	{
 		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
-		sendEvent("${clientIP}:${params.deviceId}", [name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
+		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
 	}
 	else if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
 }
@@ -260,29 +260,35 @@ def saveDevices()
 */
 private createLinkedChildDevice(dev, driverType)
 {
-	if (getChildDevices()?.find{it.deviceNetworkId == "${clientIP}:${dev.id}"})
+	def childDevice = getChildDevices()?.find{it.deviceNetworkId == "${clientIP}:${dev.id}"}
+	if (childDevice)
 	{
 		// Device exists
 		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
+		return
 	}
 	else
 	{
 		if (enableDebug) log.trace "Creating Device ${driverType} - ${dev.label}... ${clientIP}:${dev.id}..."
 		try
 		{
-			addChildDevice("shackrat", driverType, "${clientIP}:${dev.id}", null, [name: dev.label, label: dev.label])
+			childDevice = addChildDevice("shackrat", driverType, "${clientIP}:${dev.id}", null, [name: dev.label, label: dev.label])
 		}
 		catch (errorException)
 		{
 			log.error "... Uunable to create device ${dev.label}: ${errorException}."
+			childDevice = null
 		}
 	}
 
 	// Set the value of the primary attributes
-	dev.attr.each
+	if (childDevice)
 	{
-	  attribute ->
-		sendEvent("${clientIP}:${dev.id}", [name: attribute.name, value: attribute.value, unit: attribute.unit])
+		dev.attr.each
+		{
+	 	 attribute ->
+			childDevice.sendEvent([name: attribute.name, value: attribute.value, unit: attribute.unit])
+		}
 	}
 }
 
@@ -296,10 +302,12 @@ private createLinkedChildDevice(dev, driverType)
 */
 private createHubChildDevice()
 {
-	if (getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"})
+	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
+	if (hubDevice)
 	{
 		// Hub exists
-		if (enableDebug) log.trace "Hub device exists... Skipping creation.."
+		log.error "Hub device exists... Skipping creation.."
+		hubDevice = null
 	}
 	else
 	{
@@ -307,16 +315,19 @@ private createHubChildDevice()
 		
 		try
 		{
-			addChildDevice("shackrat", "HubConnect Remote Hub", "hub-${clientIP}", null, [name: "HubConnect Hub", label: clientName])
+			hubDevice = addChildDevice("shackrat", "HubConnect Remote Hub", "hub-${clientIP}", null, [name: "HubConnect Hub", label: clientName])
 		}
 		catch (errorException)
 		{
 			log.error "Unable to create the Hub monitoring device: ${errorException}.   Support Data: [id: \"hub-${clientIP}\", name: \"HubConnect Hub\", label: \"${clientName}\"]"
+			hubDevice = null
 		}
+		
+		// Set the value of the primary attributes
+		if (hubDevice) sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
 	}
 
-	// Set the value of the primary attributes
-	sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
+	hubDevice
 }
 
 
@@ -392,7 +403,7 @@ def remoteDeviceCommand()
 		return jsonResponse([status: "error"])
 	}
 	
-	if (enableDebug) log.info "Received command from client: [\"${device.label}\": ${params.deviceCommand}]"
+	if (enableDebug) log.info "Received command from client: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
 	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
@@ -553,11 +564,12 @@ def saveDevicesToClient()
 		def devices = []
 		settings."${device.selector}".each
 		{
+			log.debug getAttributeMap(it, groupname)
 			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
 		}
 		if (devices != [])
 		{
-			if (enableDebug) log.info "Sending devices to server: ${groupname} - ${devices}"
+			if (enableDebug) log.info "Sending devices to remote: ${groupname} - ${devices}"
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
@@ -569,7 +581,7 @@ def saveDevicesToClient()
 		def customSel = settings?."custom_${groupname}"
 		if (customSel != null)
 		{
-			if (enableDebug) log.info "Sending custom devices to server: ${k} - ${v}"
+			if (enableDebug) log.info "Sending custom devices to remote: ${k} - ${v}"
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
 		}
 	}
@@ -628,7 +640,7 @@ def sendPostCommand(command, data)
 		body: data
 	]
 
-	httpPost(requestParams)
+	httpPostJson(requestParams)
 	{
 	  response ->
 		if (response?.status == 200)
@@ -877,7 +889,17 @@ def saveCustomDrivers(customDrivers)
 def installed()
 {
 	log.info "${app.name} Installed"
-	initialize()
+	
+	if (state.clientToken && createHubChildDevice())
+	{
+		initialize()
+	}
+	else
+	{
+		// Set an error state
+		state.lastCheckIn = 0
+		state.connectStatus = "error"
+	}
 }
 
 
@@ -894,7 +916,7 @@ def updated()
 
 	if (state?.customDrivers == null)
 	{
-		state.customDrivers = []
+		state.customDrivers = [:]
 	}
 
 	unsubscribe()
@@ -921,8 +943,6 @@ def initialize()
 	state.connectStatus = "online"
 
 	state.commDisabled = false
-
-	createHubChildDevice()
 
 	app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
 	runEvery5Minutes("appHealth")
@@ -1211,6 +1231,6 @@ def customDevicePage()
 	}
 }
 
-def getCurrentVersion(){1.0}
-def getModuleBuild(){1.1}
+def getCurrentVersion(){1.1}
+def getModuleBuild(){1.2}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

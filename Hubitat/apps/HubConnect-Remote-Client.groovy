@@ -196,7 +196,7 @@ def remoteDeviceCommand()
 		return jsonResponse([status: "error"])
 	}
 	
-	if (enableDebug) log.info "Received command from server: [\"${device.label}\": ${params.deviceCommand}]"
+	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
 	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
@@ -447,7 +447,7 @@ def deviceEvent()
 	if (childDevice)
 	{
 		if (enableDebug) log.debug "Received event from server/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
-		sendEvent("${serverIP}:${params.deviceId}", [name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
+		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
 	}
 	else if (enableDebug) log.warn "Ignoring Received event from server: Device Not Found!"
 }
@@ -494,29 +494,35 @@ def saveDevices()
 */
 private createLinkedChildDevice(dev, driverType)
 {
-	if (getChildDevices()?.find{it.deviceNetworkId == "${serverIP}:${dev.id}"})
+	def childDevice = getChildDevices()?.find{it.deviceNetworkId == "${serverIP}:${dev.id}"}
+	if (childDevice)
 	{
 		// Device exists
 		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
+		return
 	}
 	else
 	{
 		if (enableDebug) log.trace "Creating Device ${driverType} - ${dev.label}... ${serverIP}:${dev.id}..."
 		try
 		{
-			addChildDevice("shackrat", driverType, "${serverIP}:${dev.id}", null, [name: dev.label, label: dev.label])
+			childDevice = addChildDevice("shackrat", driverType, "${serverIP}:${dev.id}", null, [name: dev.label, label: dev.label])
 		}
 		catch (errorException)
 		{
 			log.error "... Uunable to create device ${dev.label}: ${errorException}."
+			childDevice = null
 		}
 	}
 
 	// Set the value of the primary attributes
-	dev.attr.each
+	if (childDevice)
 	{
-	  attribute ->
-		sendEvent("${serverIP}:${dev.id}", [name: attribute.name, value: attribute.value, unit: attribute.unit])
+		dev.attr.each
+		{
+	 	 attribute ->
+			childDevice.sendEvent([name: attribute.name, value: attribute.value, unit: attribute.unit])
+		}
 	}
 }
 
@@ -546,7 +552,7 @@ def syncDevice(deviceId, deviceType)
 			data?.currentValues.each
 			{
 			  attr ->
-				sendEvent(deviceId, [name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
+				childDevice.sendEvent([name: attr.name, value: attr.value, unit: attr.unit, descriptionText: "Sync: ${childDevice.displayName} ${attr.name} is ${attr.value} ${attr.unit}", isStateChange: true])
 			}
 		}
 	}
@@ -713,7 +719,7 @@ def updated()
 
 	if (state?.customDrivers == null)
 	{
-		state.customDrivers = []
+		state.customDrivers = [:]
 	}
 
 	initialize()
@@ -766,7 +772,7 @@ def mainPage()
 		section("-= <b>Main Menu</b> =-")
 		{
 			href "connectPage", title: "Connect to Server Hub...", description: "", state: serverURL ? "complete" : null
-			href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+			if (state.clientURI?.size() > 10) href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
 		}
 		section("-= <b>Debug Menu</b> =-")
 		{
@@ -1126,6 +1132,6 @@ def aboutPage()
 	}
 }
 
-def getCurrentVersion(){1.0}
-def getModuleBuild(){1.2}
+def getCurrentVersion(){1.1}
+def getModuleBuild(){1.3}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
