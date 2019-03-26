@@ -507,7 +507,7 @@ private createLinkedChildDevice(dev, driverType)
 		if (enableDebug) log.trace "Creating Device ${driverType} - ${dev.label}... ${serverIP}:${dev.id}..."
 		try
 		{
-			childDevice = addChildDevice("shackrat", driverType, "${clientIP}:${dev.id}", null, [name: dev.label, label: dev.label])
+			childDevice = addChildDevice("shackrat", driverType, "${serverIP}:${dev.id}", null, [name: dev.label, label: dev.label])
 		}
 		catch (errorException)
 		{
@@ -1181,5 +1181,5 @@ def customDevicePage()
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
 def getCurrentVersion(){1.1}
-def getModuleBuild(){1.4}
+def getModuleBuild(){1.5}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
