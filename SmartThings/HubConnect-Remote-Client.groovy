@@ -199,9 +199,9 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
+	if (device.supportedCommands.find{it == params.deviceCommand} == null)
 	{
-		log.error "The device ${device.deviceId} does not support the command ${params.deviceCommand}."
+		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
 
@@ -388,7 +388,7 @@ def saveDevicesToServer()
 		}
 		if (devices != [])
 		{
-			log.info "Sending devices to server: ${groupname} - ${devices}"
+			if (enableDebug) log.info "Sending devices to server: ${groupname} - ${devices}"
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
@@ -400,7 +400,7 @@ def saveDevicesToServer()
 		def customSel = settings?."custom_${groupname}"
 		if (customSel != null)
 		{
-			log.info "Sending custom devices to server: ${k} - ${v}"
+			if (enableDebug) log.info "Sending custom devices to server..."
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
 		}
 	}
@@ -741,16 +741,16 @@ def initialize()
 {
 	log.info "${app.name} Initialized"
 	unschedule()
-	
-	state.commDisabled = false
-	state.saveDevices = false
 
+   	state.commDisabled = false
 	if (isConnected)
 	{
 		saveDevicesToServer()
 		subscribeLocalEvents()
 		runEvery1Minute("appHealth")
 	}
+    
+	state.saveDevices = false
 }
 
 
@@ -904,7 +904,7 @@ def devicePage()
 			requiredDrivers << "HubConnect ${device.driver}"
 		}
 	}
-
+log.debug "devicePage" + state
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
@@ -1181,5 +1181,5 @@ def customDevicePage()
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
 def getCurrentVersion(){1.1}
-def getModuleBuild(){1.5}
+def getModuleBuild(){1.6}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

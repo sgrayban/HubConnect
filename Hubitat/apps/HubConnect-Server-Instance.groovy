@@ -168,7 +168,6 @@ def sendDeviceEvent(deviceId, deviceCommand, Object... commandParams)
 
 	def dniParts = deviceId.split(":")
 	def paramsEncoded = commandParams ? URLEncoder.encode(new groovy.json.JsonBuilder(commandParams).toString()) : null
-
 	sendGetCommand("/event/${dniParts[1]}/${deviceCommand}/${paramsEncoded}")
 }
 
@@ -406,9 +405,9 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from client: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
+	if (device.supportedCommands.find{it == params.deviceCommand} == null)
 	{
-		log.error "The device ${device.deviceId} does not support the command ${params.deviceCommand}."
+		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
 
@@ -581,7 +580,7 @@ def saveDevicesToClient()
 		def customSel = settings?."custom_${groupname}"
 		if (customSel != null)
 		{
-			if (enableDebug) log.info "Sending custom devices to remote: ${k} - ${v}"
+			if (enableDebug) log.info "Sending custom devices to remote..."
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
 		}
 	}
@@ -1232,5 +1231,5 @@ def customDevicePage()
 }
 
 def getCurrentVersion(){1.1}
-def getModuleBuild(){1.2}
+def getModuleBuild(){1.3}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

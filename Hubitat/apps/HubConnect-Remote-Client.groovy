@@ -199,9 +199,9 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == false)
+	if (device.supportedCommands.find{it == params.deviceCommand} == null)
 	{
-		log.error "The device ${device.deviceId} does not support the command ${params.deviceCommand}."
+		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
 
@@ -399,7 +399,7 @@ def saveDevicesToServer()
 		def customSel = settings?."custom_${groupname}"
 		if (customSel != null)
 		{
-			if (enableDebug) log.info "Sending custom devices to server: ${k} - ${v}"
+			if (enableDebug) log.info "Sending custom devices to server..."
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
 		}
 	}
@@ -737,12 +737,16 @@ def initialize()
 {
 	log.info "${app.name} Initialized"
 	unschedule()
-	
-	state.commDisabled = false
 
-	saveDevicesToServer()
-	subscribeLocalEvents()
-	runEvery1Minute("appHealth")
+   	state.commDisabled = false
+	if (isConnected)
+	{
+		saveDevicesToServer()
+		subscribeLocalEvents()
+		runEvery1Minute("appHealth")
+	}
+    
+	state.saveDevices = false
 }
 
 
@@ -1133,5 +1137,5 @@ def aboutPage()
 }
 
 def getCurrentVersion(){1.1}
-def getModuleBuild(){1.3}
+def getModuleBuild(){1.4}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
