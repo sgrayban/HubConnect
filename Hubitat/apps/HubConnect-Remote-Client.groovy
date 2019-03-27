@@ -199,7 +199,7 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it == params.deviceCommand} == null)
+	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == null)
 	{
 		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
@@ -1138,5 +1138,5 @@ def aboutPage()
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
 def getCurrentVersion(){1.1}
-def getModuleBuild(){1.4}
+def getModuleBuild(){1.5}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
