@@ -22,6 +22,7 @@
  */
 import groovy.transform.Field
 import groovy.json.JsonSlurper
+include 'asynchttp_v1'
 definition(
 	name: "HubConnect Remote Client",
 	namespace: "shackrat",
@@ -55,7 +56,8 @@ preferences
 [
 	"arlocamera":		[driver: "Arlo Camera", selector: "arloProCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
 	"arloqcamera":		[driver: "Arlo Camera", selector: "arloQCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
-	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "temperature", "battery"]],
+	"arrival":			[driver: "Arrival Sensor", selector: "smartThingsArrival", attr: ["presence", "battery", "tone"]],
+	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "button", "temperature", "battery"]],
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
 	"domemotion":		[driver: "Dome Motion Sensor", selector: "domeMotions", attr: ["motion", "temperature", "illuminance", "battery"]],
@@ -282,7 +284,7 @@ def subscribeLocalEvents()
 	{
 	  groupname, device ->
 		def selectedDevices = settings."${device.selector}"
-		if (selectedDevices?.size()) getSupportedAttributes(groupname).each { subscribe(selectedDevices, it, realtimeEventHandler) }
+		if (selectedDevices?.size()) getSupportedAttributes(groupname).each { subscribe(selectedDevices, it, groupname != "button" ? realtimeEventHandler : buttonEventTranslator) }
 	}
 
 	// Special handling for Smart Plugs & Power Meters - Kinda Kludgy
@@ -296,6 +298,18 @@ def subscribeLocalEvents()
 	  groupname, driver ->
 		if (settings."custom_${groupname}"?.size()) getSupportedAttributes(groupname).each { subscribe(settings."custom_${groupname}", it, realtimeEventHandler) }	
 	}
+}
+
+
+/*
+	buttonEventTranslator
+    
+	Purpose: Translates SmartThings button events into Hubitat button events.
+*/
+def buttonEventTranslator(evt)
+{
+	def data = parseJson(evt.data)
+    return realtimeEventHandler([name: evt.value, value: data.buttonNumber, unit: "", isStateChange: true, data: "", deviceId: evt.deviceId, device: evt.device])
 }
 
 
@@ -323,7 +337,7 @@ def realtimeEventHandler(evt)
 	
 	def data = URLEncoder.encode(new groovy.json.JsonBuilder(event).toString())
 
-	if (enableDebug) log.debug "Sending event to server: ${evt.device.label ?: evt.device.name} [${evt.name}: ${evt.value} ${evt.unit}]"
+	if (enableDebug) log.debug "Sending event to server: ${evt.device?.label ?: evt.device?.name} [${evt.name}: ${evt.value} ${evt.unit}]"
 	sendGetCommand("/device/${evt.deviceId}/event/${data}")
 }
 
@@ -417,7 +431,7 @@ def saveDevicesToServer()
 
 	Notes: CALLED FROM CHILD DEVICE
 */
-def sendDeviceEvent(deviceId, deviceCommand, Object... commandParams)
+def sendDeviceEvent(deviceId, deviceCommand, List commandParams=[])
 {
 	if (state.commDisabled) return
 
@@ -544,7 +558,7 @@ def syncDevice(deviceId, deviceType)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
 
-		def data = sendGetCommand("/device/${dniParts[1]}/sync/${deviceType}")
+		def data = httpGetWithReturn("/device/${dniParts[1]}/sync/${deviceType}")
 
 		if (data?.status == "success")
 		{
@@ -561,21 +575,25 @@ def syncDevice(deviceId, deviceType)
 
 
 /*
-	sendGetCommand
+	httpGetWithReturn
     
 	Purpose: Helper function to format GET requests with the proper oAuth token.
 
 	Notes: 	Command is absolute and must begin with '/'
 			Returns JSON Map if successful.
 */
-def sendGetCommand(command)
+def httpGetWithReturn(command)
 {
-	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
+	def serverURI = state.clientURI + command
 
 	def requestParams =
-    [
+	[
 		uri:  serverURI,
-		requestContentType: "application/json"
+		requestContentType: "application/json",
+		headers:
+		[
+			Authorization: "Bearer ${state.clientToken}"
+		]
 	]
     
 	httpGet(requestParams)
@@ -589,6 +607,47 @@ def sendGetCommand(command)
 		{
 			log.error "httpGet() request failed with error ${response?.status}"
 		}
+	}
+}
+
+
+/*
+	sendGetCommand
+    
+	Purpose: Helper function to format GET requests with the proper oAuth token.
+
+	Notes: 	Executes async http request and does not return data.
+*/
+def sendGetCommand(command)
+{
+	def serverURI = state.clientURI + command
+
+	def requestParams =
+	[
+		uri:  serverURI,
+		requestContentType: "application/json",
+		headers:
+		[
+			Authorization: "Bearer ${state.clientToken}"
+		]
+	]
+    
+	asynchttp_v1.get("asyncHTTPHandler", requestParams)
+}
+
+
+/*
+	asyncHTTPHandler
+    
+	Purpose: Helper function to handle returned data from asyncHttpGet.
+
+	Notes: 	Does not return data, only logs errors.
+*/
+def asyncHTTPHandler(response, data)
+{
+	if (response?.status != 200)
+	{
+		log.error "httpGet() request failed with error ${response?.status}"
 	}
 }
 
@@ -787,7 +846,7 @@ def mainPage()
 		}
 		section()
 		{
-			paragraph title: "HubConnect ${currentVersion}", "SmartThings Client build ${moduleBuild}\n${appCopyright}"
+			paragraph title: "HubConnect v${appVersion.major}.${appVersion.minor}.${appVersion.build}", "SmartThings Client build ${moduleBuild}\n${appCopyright}"
 		}
 	}
 }
@@ -818,10 +877,11 @@ def connectPage()
 		catch (errorException)
 		{
 			log.error "Error reading connection key: ${errorException}."
-			responseText = "<div style=\"color: red\">Error: Corrupt or invalid connection key</div>"
+			responseText = "Error: Corrupt or invalid connection key"
 			state.connected = false
+            accessData = null
 		}
-        if (accessData && accessData?.token)
+        if (accessData && accessData?.token && accessData?.type == "smartthings")
 		{
 			// Set the coordinator hub details
 			state.clientURI = accessData.uri
@@ -830,7 +890,7 @@ def connectPage()
 			
 			// Send our connect string to the coordinator
 			def connectKey = new groovy.json.JsonBuilder([uri: apiServerUrl("/api/smartapps/installations/${app.id}"), type: "remote", token: state.accessToken, mac: location.hubs[0].id]).toString().bytes.encodeBase64()
-			def response = sendGetCommand("/connect/${connectKey}")
+			def response = httpGetWithReturn("/connect/${connectKey}")
 
 			if ("${response.status}" == "success")
 			{
@@ -839,9 +899,10 @@ def connectPage()
 			else
 			{
 				state.connected = false
-				responseText = "<div style=\"color: red\">Error: ${response?.message}</div>"
+				responseText = "Error: ${response?.message}"
 			}
 		}
+		else if (accessData?.type != "smartthings") responseText = "Error: Connection key is not for this platform"
 	}
 
 	// Reset connection data if handshake failed
@@ -891,7 +952,7 @@ def devicePage()
 	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
 	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
 	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
+	def otherDevicePageCount = genericPresences?.size()?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
 	def stCloudDevicesCount = arloProCameras?.size() ?: arloQCameras?.size() ?: ringDoorbellPros?.size()
 
 	def totalNativeDevices = 0
@@ -904,7 +965,7 @@ def devicePage()
 			requiredDrivers << "HubConnect ${device.driver}"
 		}
 	}
-log.debug "devicePage" + state
+
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
@@ -1098,13 +1159,17 @@ def otherDevicePage()
 
 	dynamicPage(name: "otherDevicePage", uninstall: false, install: false)
 	{
+		section("-= Select SmartThings Arrival Sensors (${smartThingsArrival?.size() ?: "0"} connected) =-")
+		{
+			input "smartThingsArrival", "capability.presenceSensor", title: "SmartThings Arrival Sensors (presence, tone):", required: false, multiple: true, defaultValue: null
+		}
 		section("-= Select Presence Sensors (${genericPresences?.size() ?: "0"} connected) =-")
 		{
 			input "genericPresences", "capability.presenceSensor", title: "Presence Sensors (presence, alarm):", required: false, multiple: true, defaultValue: null
 		}
 		section("-= Select Button Devices (${genericButtons?.size() ?: "0"} connected) =-")
 		{ 
-			input "genericButtons", "capability.pushableButton", title: "Buttons (pushed, held, doubleTapped, released):", required: false, multiple: true, defaultValue: null
+			input "genericButtons", "capability.button", title: "Buttons (pushed, held):", required: false, multiple: true, defaultValue: null
 		}
 		section("-= Select Thermostat Devices (${genericThermostats?.size() ?: "0"} connected) =-")
 		{ 
@@ -1180,6 +1245,5 @@ def customDevicePage()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getCurrentVersion(){1.1}
-def getModuleBuild(){1.7}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 0]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

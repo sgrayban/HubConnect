@@ -17,10 +17,10 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Contact Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Contact-Sensor.groovy")
+	definition(name: "HubConnect Smoke/CO Detector", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-SmokeCO.groovy")
 	{
-		capability "Contact Sensor"
-		capability "Temperature Measurement"
+		capability "Smoke Detector"
+		capability "Carbon Monoxide Detector"
 		capability "Battery"
 		capability "Refresh"
 
@@ -29,50 +29,33 @@ metadata
 		command "sync"
 	}
 
-	tiles(scale: 2)
+	tiles (scale: 2)
 	{
-		multiAttributeTile(name: "contact", type: "generic", width: 6, height: 4)
+		multiAttributeTile(name:"smoke", type: "lighting", width: 6, height: 4)
 		{
-			tileAttribute("device.contact", key: "PRIMARY_CONTROL")
+			tileAttribute ("device.alarmState", key: "PRIMARY_CONTROL")
 			{
-				attributeState "open", label: '${name}', icon: "st.contact.contact.open", backgroundColor: "#e86d13"
-				attributeState "closed", label: '${name}', icon: "st.contact.contact.closed", backgroundColor: "#00A0DC"
+				attributeState("clear", label:"clear", icon:"st.alarm.smoke.clear", backgroundColor:"#ffffff")
+				attributeState("smoke", label:"SMOKE", icon:"st.alarm.smoke.smoke", backgroundColor:"#e86d13")
+				attributeState("carbonMonoxide", label:"MONOXIDE", icon:"st.alarm.carbon-monoxide.carbon-monoxide", backgroundColor:"#e86d13")
+				attributeState("tested", label:"TEST", icon:"st.alarm.smoke.test", backgroundColor:"#e86d13")
 			}
 		}
-
-		valueTile("temperature", "device.temperature", inactiveLabel: false, width: 2, height: 2)
+		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
 		{
-			state "temperature", label: '${currentValue}°',
-					backgroundColors: [
-							[value: 31, color: "#153591"],
-							[value: 44, color: "#1e9cbb"],
-							[value: 59, color: "#90d2a7"],
-							[value: 74, color: "#44b621"],
-							[value: 84, color: "#f1d801"],
-							[value: 95, color: "#d04e00"],
-							[value: 96, color: "#bc2323"]
-					]
-		}
-		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 3, height: 2)
-		{
-			state "battery", label: '${currentValue}% battery', unit: ""
-		}
-
-		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
-		{
-			state "default", action: "refresh.refresh", icon: "st.secondary.refresh"
+			state "battery", label:'${currentValue}% battery', unit:""
 		}
 		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
 		{
 			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
 		}
-		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
 			state "default", label: '${currentValue}'
 		}
 
-		main(["contact", "temperature"])
-		details(["contact", "sync", "temperature", "refresh", "battery", "version"])
+		main "smoke"
+		details(["smoke", "sync", "battery", "version"])
 	}
 }
 
@@ -121,6 +104,7 @@ def parse(String description)
 }
 
 
+
 /*
 	refresh
     
@@ -129,7 +113,7 @@ def parse(String description)
 def refresh()
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
+	parent.sendDeviceEvent(device.deviceNetworkId, "contact", "refresh")
     sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 
@@ -142,6 +126,6 @@ def refresh()
 def sync()
 {
 	// The server will respond with updated status and details
-	parent.syncDevice(device.deviceNetworkId, "contact")
+	parent.syncDevice(device.deviceNetworkId, "smoke")
 }
 def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

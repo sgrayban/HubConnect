@@ -23,6 +23,8 @@ metadata
 		capability "Switch Level"
 		capability "Refresh"
 
+		attribute "version", "string"
+
 		command "sync"
 	}
 }
@@ -104,7 +106,7 @@ def off()
 def setLevel(value, duration=1)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setLevel", value, duration)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setLevel", [value, duration])
 }
 
 
@@ -129,4 +131,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "dimmer")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

@@ -24,6 +24,8 @@ metadata
         capability "Lock Codes"
 		capability "Battery"
 		capability "Refresh"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -107,7 +109,7 @@ def unlock()
 def setCodeLength(length)
 {
 	// The server will respond with the a "codeLength" event
-	parent.sendDeviceEvent(device.deviceNetworkId, "setCodeLength", length)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setCodeLength", [length])
 }
 
 
@@ -119,7 +121,7 @@ def setCodeLength(length)
 def deleteCode(codeNumber)
 {
 	// The server will respond with the a "codeChanged" event
-	parent.sendDeviceEvent(device.deviceNetworkId, "deleteCode", codeNumber)
+	parent.sendDeviceEvent(device.deviceNetworkId, "deleteCode", [codeNumber])
 }
 
 
@@ -131,7 +133,7 @@ def deleteCode(codeNumber)
 def setCode(codeNumber, code, name = null)
 {
 	// The server will respond with the a "codeChanged" event
-	parent.sendDeviceEvent(device.deviceNetworkId, "setCode", codeNumber, code, name)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setCode", [codeNumber, code, name])
 }
 
 
@@ -168,4 +170,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "lock")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

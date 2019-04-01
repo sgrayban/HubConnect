@@ -30,6 +30,7 @@ metadata
 		attribute "lastRefresh", "string"
 		attribute "deviceMSR", "string"	
 		attribute "lastMsgRcvd","string"
+		attribute "version", "string"
 	}
 }
 
@@ -111,4 +112,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "zwaverepeater")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

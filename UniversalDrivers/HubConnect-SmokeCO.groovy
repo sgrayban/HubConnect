@@ -23,6 +23,8 @@ metadata
 		capability "Carbon Monoxide Detector"
 		capability "Battery"
 		capability "Refresh"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -82,7 +84,7 @@ def parse(String description)
 def refresh()
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "contact", "refresh")
+	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
 }
 
 
@@ -95,4 +97,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "smoke")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

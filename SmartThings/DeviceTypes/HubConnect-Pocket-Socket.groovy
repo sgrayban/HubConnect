@@ -17,11 +17,13 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Pocket Socket", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Pocket-Socket.groovy")
+	definition(name: "HubConnect Pocket Socket", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Pocket-Socket.groovy")
 	{
 		capability "Switch"
 		capability "Power Meter"
 		capability "Refresh"
+
+		attribute "version", "string"
 
 		command "sync"
 	}
@@ -50,9 +52,13 @@ metadata
 		{
 			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
 		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
 
 		main "switch"
-		details(["switch", "sync", "refresh"])
+		details(["switch", "sync", "refresh", "version"])
 	}
 }
 
@@ -134,6 +140,7 @@ def refresh()
 {
 	// The server will update status
 	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
+    sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 
 
@@ -147,3 +154,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "pocketsocket")
 }
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

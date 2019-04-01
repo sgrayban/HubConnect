@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Switch", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Switch.groovy")
+	definition(name: "HubConnect Switch", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Switch.groovy")
 	{
 		capability "Switch"
 		capability "Refresh"
@@ -25,6 +25,35 @@ metadata
 		attribute "version", "string"
 		
 		command "sync"
+	}
+
+	tiles(scale: 2)
+	{
+		multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true)
+		{
+			tileAttribute ("device.switch", key: "PRIMARY_CONTROL")
+			{
+				attributeState "on", label: 'On', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00A0DC", nextState: "turningOff"
+				attributeState "off", label: 'Off', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState: "turningOn"
+				attributeState "turningOn", label: 'Turning On', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00A0DC", nextState: "turningOff"
+				attributeState "turningOff", label: 'Turning Off', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState: "turningOn"
+			}
+		}
+		standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat")
+		{
+			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
+		}
+		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
+		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
+
+		main "switch"
+		details(["switch", "sync", "refresh", "version"])
 	}
 }
 
@@ -106,6 +135,7 @@ def refresh()
 {
 	// The server will update status
 	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 
 
@@ -118,6 +148,5 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "switch")
-	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

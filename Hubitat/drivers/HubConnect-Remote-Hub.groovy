@@ -15,11 +15,18 @@
  *
  *
  */
+import hubitat.helper.InterfaceUtils
 metadata 
 {
-	definition(name: "HubConnect Remote Hub", namespace: "shackrat", author: "Steve White")
+	definition(name: "HubConnect Remote Hub", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/Hubitat/drivers/HubConnect-Remote-Hub.groovy")
 	{
 		capability "Presence Sensor"
+		capability "Switch"
+		capability "Initialize"
+
+		attribute "eventSocketStatus", "string"
+		attribute "connectionType", "string"
+		attribute "version", "string"
 		
 		command "pushCurrentMode"
 	}
@@ -34,6 +41,7 @@ metadata
 def installed()
 {
 	initialize()
+	state.connectionType = "http"
 }
 
 
@@ -45,6 +53,7 @@ def installed()
 def updated()
 {
 	initialize()
+	if (state.connectionType == null) state.connectionType = "http"
 }
 
 
@@ -55,7 +64,86 @@ def updated()
 */
 def initialize()
 {
+	log.trace "Initialize virtual Hub device..."
 
+	state.connectionAttempts = 0
+
+	if (state.connectionType == "socket" && device.currentSwitch == "on")
+	{
+		def ipParts = device.deviceNetworkId.split("-")
+
+		// Connect to the remote hubs event socket
+		try
+		{
+			log.info "Attempting socket connection to ${device.label ?: device.name} (${state.connectionAttempts})"
+			InterfaceUtils.webSocketConnect(device, "ws://${ipParts[1]}/eventsocket")
+		} 
+		catch(errorException)
+		{
+			log.error "WebSocket connect to remote hub failed: ${errorException.message}"
+    	}
+	}
+	sendEvent([name: "connectionType", value: state.connectionType])
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
+}
+
+
+/*
+	webSocketStatus
+    
+	Called by the websocket to the remote Hubitat hub.
+*/
+def webSocketStatus(String socketStatus)
+{
+	if (socketStatus.startsWith("status: open"))
+	{
+		log.info "Connected to ${device.label ?: device.name}"
+		state.connectionAttempts = 0
+		sendEvent([name: "eventSocketStatus", value: "connected"])
+		return
+    } 
+	else if (socketStatus.startsWith("status: closing"))
+	{
+		log.info "Closing connection to ${device.label ?: device.name}"
+		sendEvent([name: "eventSocketStatus", value: "closed"])
+		return
+	} 
+	else if (socketStatus.startsWith("failure:"))
+	{
+		log.warn "Connection to ${device.label ?: device.name} has failed with error [${socketStatus}].  Attempting to reconnect..."
+    } 
+	else
+	{
+		log.warn "Connection to ${device.label ?: device.name} has been lost due to an unknown error.  Attempting to reconnect..."
+    }
+
+	state.connectionAttempts = state.connectionAttempts + 1
+	runIn(10, "initialize")
+}
+
+
+/*
+	setConnectionType
+    
+	Called by Server Instance to set the connection type.
+*/
+def setConnectionType(connType)
+{
+	state.connectionType = connType
+	
+	// Switch connections
+	if (connType == "http" && device.currentEventSocketStatus == "connected")
+	{
+		InterfaceUtils.webSocketClose(device)
+		sendEvent([name: "eventSocketStatus", value: "disconnected"])
+		sendEvent([name: "connectionType", value: "http"])
+	}
+	else if (connType == "socket" && device.currentEventSocketStatus != "connected")
+	{
+		initialize()
+	}
+
+	log.info "Switching connection to ${device.label ?: device.name} to ${connType}"	
 }
 
 
@@ -66,7 +154,51 @@ def initialize()
 */
 def parse(String description)
 {
-	log.trace "Msg: Description is $description"
+	def eventData = null
+	try
+	{
+		eventData = new groovy.json.JsonSlurper().parseText(description)
+    }
+	catch(errorException)
+	{
+		log.error "Failed to parse event data: ${errorException}"
+    }
+
+	if (eventData?.source == "DEVICE")
+	{
+		parent.wsSendEvent(eventData)
+	}
+}
+
+
+/*
+	on
+    
+	Enable communications from the remote hub.
+*/
+def on()
+{
+	parent.setCommStatus(false)
+	if (state.connectionType == "socket")
+	{
+		sendEvent([name: "eventSocketStatus", value: "connecting"])
+		runIn(2, "initialize")
+	}
+}
+
+
+/*
+	off
+    
+	Disable communications from the remote hub.
+*/
+def off()
+{
+	parent.setCommStatus(true)
+	if (state.connectionType == "socket")
+	{
+		InterfaceUtils.webSocketClose(device)
+	}
 }
 
 
@@ -79,3 +211,4 @@ def pushCurrentMode()
 {
 	parent.pushCurrentMode()
 }
+def getDriverVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 1]}

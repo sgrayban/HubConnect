@@ -21,6 +21,8 @@ metadata
 	{
 		capability "Presence Sensor"
 		capability "Battery"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -80,4 +82,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "presence")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

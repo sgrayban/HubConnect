@@ -23,7 +23,9 @@ metadata
 		capability "Sensor"
 		capability "Thermostat"
 		capability "Temperature Measurement"
-		capability "Relative Humidity Measurement"    
+		capability "Relative Humidity Measurement"
+
+		attribute "version", "string"    
 		
 		command "sync"
 	}
@@ -178,7 +180,7 @@ def off()
 def setCoolingSetpoint(temperature)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setCoolingSetpoint", temperature)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setCoolingSetpoint", [temperature])
 }
 
 
@@ -190,7 +192,7 @@ def setCoolingSetpoint(temperature)
 def setHeatingSetpoint(temperature)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setHeatingSetpoint", temperature)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setHeatingSetpoint", [temperature])
 }
 
 
@@ -202,7 +204,7 @@ def setHeatingSetpoint(temperature)
 def setSchedule(schedule)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setSchedule", schedule.toString())
+	parent.sendDeviceEvent(device.deviceNetworkId, "setSchedule", [schedule.toString()])
 }
 
 
@@ -214,7 +216,7 @@ def setSchedule(schedule)
 def setThermostatFanMode(fanmode)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setThermostatFanMode", fanmode)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setThermostatFanMode", [fanmode])
 }
 
 
@@ -226,7 +228,7 @@ def setThermostatFanMode(fanmode)
 def setThermostatMode(thermostatmode)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setThermostatMode", thermostatmode)
+	parent.sendDeviceEvent(device.deviceNetworkId, "setThermostatMode", [thermostatmode])
 }
 
 
@@ -239,4 +241,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "thermostat")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

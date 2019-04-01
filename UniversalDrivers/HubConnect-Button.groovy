@@ -26,11 +26,14 @@ metadata
 		capability "Temperature Measurement"
 		capability "Battery"
 
+		attribute "version", "string"
+
 		command "push", [[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
 		command "hold", [[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
 		command "doubleTap", [[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
 		
 		command "sync"
+		command "test"
 	}
 }
 
@@ -87,7 +90,7 @@ def parse(String description)
 def push(btn)
 {
 	// The server will update pushed status
-	parent.sendDeviceEvent(device.deviceNetworkId, "push", btn)
+	parent.sendDeviceEvent(device.deviceNetworkId, "push", [btn])
 }
 
 
@@ -99,7 +102,7 @@ def push(btn)
 def hold(btn)
 {
 	// The server will update held status
-	parent.sendDeviceEvent(device.deviceNetworkId, "hold", btn)
+	parent.sendDeviceEvent(device.deviceNetworkId, "hold", [btn])
 }
 
 
@@ -111,7 +114,7 @@ def hold(btn)
 def doubleTap(btn)
 {
 	// The server will update doubleTapped status
-	parent.sendDeviceEvent(device.deviceNetworkId, "doubleTap", btn)
+	parent.sendDeviceEvent(device.deviceNetworkId, "doubleTap", [btn])
 }
 
 
@@ -123,7 +126,7 @@ def doubleTap(btn)
 def released(btn)
 {
 	// The server will update released status
-	parent.sendDeviceEvent(device.deviceNetworkId, "released", btn)
+	parent.sendDeviceEvent(device.deviceNetworkId, "released", [btn])
 }
 
 
@@ -136,4 +139,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "button")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

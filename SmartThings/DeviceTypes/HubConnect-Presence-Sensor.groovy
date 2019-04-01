@@ -17,17 +17,35 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Motion Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Motion-Sensor.groovy")
+	definition(name: "HubConnect Presence Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Presence-Sensor.groovy")
 	{
-		capability "Motion Sensor"
-		capability "Temperature Measurement"
+		capability "Presence Sensor"
 		capability "Battery"
-		capability "Refresh"
 
 		attribute "version", "string"
 		
 		command "sync"
 	}
+
+    tiles
+	{
+        standardTile("presence", "device.presence", width: 2, height: 2, canChangeBackground: true)
+		{
+            state "present", labelIcon:"st.presence.tile.present", backgroundColor:"#00a0dc"
+            state "not present", labelIcon:"st.presence.tile.not-present", backgroundColor:"#ffffff"
+        }
+        valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false)
+		{
+            state "battery", label:'${currentValue}% battery', unit:""
+        }
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
+
+        main "presence"
+        details(["presence", "battery", "version"])
+    }
 }
 
 
@@ -60,7 +78,7 @@ def updated()
 */
 def initialize()
 {
-	refresh()
+
 }
 
 
@@ -76,18 +94,6 @@ def parse(String description)
 
 
 /*
-	refresh
-    
-	Refreshes the device by requesting an update from the client hub.
-*/
-def refresh()
-{
-	// The server will update motion status
-	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
-}
-
-
-/*
 	sync
     
 	Synchronizes the device details with the parent.
@@ -95,7 +101,7 @@ def refresh()
 def sync()
 {
 	// The server will respond with updated status and details
-	parent.syncDevice(device.deviceNetworkId, "motion")
+	parent.syncDevice(device.deviceNetworkId, "presence")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect DomeAeon Plug", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-DomeAeon-Plug.groovy")
+	definition(name: "HubConnect DomeAeon Plug", namespace: "shackrat", author: "Steve White")
 	{
 		capability "Switch"		
 		capability "Outlet"
@@ -27,6 +27,8 @@ metadata
 		capability "Acceleration Sensor"
 		capability "Contact Sensor"
 		capability "Refresh"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -122,4 +124,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "power")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

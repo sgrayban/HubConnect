@@ -25,6 +25,7 @@ metadata
 		capability "Refresh"
 
 		attribute "ACFrequency", "number"
+		attribute "version", "string"
 
 		command "toggle"
 		command "sync"
@@ -133,4 +134,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "irissmartplug")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

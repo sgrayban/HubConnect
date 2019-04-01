@@ -17,11 +17,14 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Switch", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Switch.groovy")
+	definition(name: "HubConnect Dimmer", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Dimmer.groovy")
 	{
 		capability "Switch"
+		capability "Switch Level"
 		capability "Refresh"
-		
+
+		attribute "version", "string"
+
 		command "sync"
 	}
 
@@ -31,23 +34,31 @@ metadata
 		{
 			tileAttribute ("device.switch", key: "PRIMARY_CONTROL")
 			{
-				attributeState "on", label: 'On', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00A0DC", nextState: "turningOff"
-				attributeState "off", label: 'Off', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState: "turningOn"
-				attributeState "turningOn", label: 'Turning On', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00A0DC", nextState: "turningOff"
-				attributeState "turningOff", label: 'Turning Off', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState: "turningOn"
+				attributeState "on", label:'${name}', action:"switch.off", icon:"st.switches.light.on", backgroundColor:"#00A0DC", nextState:"turningOff"
+				attributeState "off", label:'${name}', action:"switch.on", icon:"st.switches.light.off", backgroundColor:"#ffffff", nextState:"turningOn"
+				attributeState "turningOn", label:'${name}', action:"switch.off", icon:"st.switches.light.on", backgroundColor:"#00A0DC", nextState:"turningOff"
+				attributeState "turningOff", label:'${name}', action:"switch.on", icon:"st.switches.light.off", backgroundColor:"#ffffff", nextState:"turningOn"
+			}
+			tileAttribute ("device.level", key: "SLIDER_CONTROL")
+			{
+				attributeState "level", action:"switch level.setLevel"
 			}
 		}
-		standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat")
+		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
-			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
+			state "default", label:"", action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
 		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
 			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
 		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
 
 		main "switch"
-		details(["switch", "sync", "refresh"])
+		details(["switch", "sync", "refresh", "version"])
 	}
 }
 
@@ -121,6 +132,18 @@ def off()
 
 
 /*
+	setLevel
+    
+	Sets the level to <level> over duration <duration>.
+*/
+def setLevel(value, duration=1)
+{
+	// The server will update status
+	parent.sendDeviceEvent(device.deviceNetworkId, "setLevel", [value, duration])
+}
+
+
+/*
 	refresh
     
 	Refreshes the device by requesting an update from the client hub.
@@ -129,6 +152,7 @@ def refresh()
 {
 	// The server will update status
 	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
+    sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 
 
@@ -140,5 +164,6 @@ def refresh()
 def sync()
 {
 	// The server will respond with updated status and details
-	parent.syncDevice(device.deviceNetworkId, "switch")
+	parent.syncDevice(device.deviceNetworkId, "dimmer")
 }
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

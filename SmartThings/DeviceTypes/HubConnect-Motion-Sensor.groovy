@@ -17,12 +17,14 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Motion Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Motion-Sensor.groovy")
+	definition(name: "HubConnect Motion Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Motion-Sensor.groovy")
 	{
 		capability "Motion Sensor"
 		capability "Temperature Measurement"
 		capability "Battery"
 		capability "Refresh"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -51,7 +53,7 @@ metadata
 					]
 			)
 		}
-		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 6, height: 2)
+		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2)
 		{
 			state "battery", label: '${currentValue}% battery', unit: ""
 		}
@@ -63,9 +65,13 @@ metadata
 		{
 			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
 		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
 
 		main(["motion", "temperature"])
-		details(["motion", "sync", "temperature", "refresh", "battery"])
+		details(["motion", "sync", "temperature", "refresh", "battery", "version"])
 	}
 }
 
@@ -123,6 +129,7 @@ def refresh()
 {
 	// The server will update motion status
 	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
+    sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 
 
@@ -136,3 +143,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "motion")
 }
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

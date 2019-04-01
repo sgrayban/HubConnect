@@ -55,7 +55,8 @@ preferences
 [
 	"arlocamera":		[driver: "Arlo Camera", selector: "arloProCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
 	"arloqcamera":		[driver: "Arlo Camera", selector: "arloQCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
-	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "temperature", "battery"]],
+	"arrival":			[driver: "Arrival Sensor", selector: "smartThingsArrival", attr: ["presence", "battery", "tone"]],
+	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "button", "temperature", "battery"]],
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
 	"domemotion":		[driver: "Dome Motion Sensor", selector: "domeMotions", attr: ["motion", "temperature", "illuminance", "battery"]],
@@ -274,8 +275,15 @@ def serverModeChangeEvent()
 */
 def subscribeLocalEvents()
 {
-	log.info "Subscribing to events.."
 	unsubscribe()
+
+	if (state.connectionType == "socket")
+	{
+		log.info "Skipping event subscriptions...  Using event socket to send events to server."
+		return
+	}	
+
+	log.info "Subscribing to events.."
 
 	NATIVE_DEVICES.each
 	{
@@ -416,7 +424,7 @@ def saveDevicesToServer()
 
 	Notes: CALLED FROM CHILD DEVICE
 */
-def sendDeviceEvent(deviceId, deviceCommand, Object... commandParams)
+def sendDeviceEvent(deviceId, deviceCommand, List commandParams=[])
 {
 	if (state.commDisabled) return
 
@@ -543,7 +551,7 @@ def syncDevice(deviceId, deviceType)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
 
-		def data = sendGetCommand("/device/${dniParts[1]}/sync/${deviceType}")
+		def data = httpGetWithReturn("/device/${dniParts[1]}/sync/${deviceType}")
 
 		if (data?.status == "success")
 		{
@@ -560,21 +568,25 @@ def syncDevice(deviceId, deviceType)
 
 
 /*
-	sendGetCommand
+	httpGetWithReturn
     
 	Purpose: Helper function to format GET requests with the proper oAuth token.
 
 	Notes: 	Command is absolute and must begin with '/'
 			Returns JSON Map if successful.
 */
-def sendGetCommand(command)
+def httpGetWithReturn(command)
 {
-	def serverURI = state.clientURI + command + "?access_token=" + state.clientToken
+	def serverURI = state.clientURI + command
 
 	def requestParams =
 	[
 		uri:  serverURI,
-		requestContentType: "application/json"
+		requestContentType: "application/json",
+		headers:
+		[
+			Authorization: "Bearer ${state.clientToken}"
+		]
 	]
     
 	httpGet(requestParams)
@@ -588,6 +600,47 @@ def sendGetCommand(command)
 		{
 			log.error "httpGet() request failed with error ${response?.status}"
 		}
+	}
+}
+
+
+/*
+	sendGetCommand
+    
+	Purpose: Helper function to format GET requests with the proper oAuth token.
+
+	Notes: 	Executes async http request and does not return data.
+*/
+def sendGetCommand(command)
+{
+	def serverURI = state.clientURI + command
+
+	def requestParams =
+	[
+		uri:  serverURI,
+		requestContentType: "application/json",
+		headers:
+		[
+			Authorization: "Bearer ${state.clientToken}"
+		]
+	]
+    
+	asynchttpGet("asyncHTTPHandler", requestParams)
+}
+
+
+/*
+	asyncHTTPHandler
+    
+	Purpose: Helper function to handle returned data from asyncHttpGet.
+
+	Notes: 	Does not return data, only logs errors.
+*/
+def asyncHTTPHandler(response, data)
+{
+	if (response?.status != 200)
+	{
+		log.error "httpGet() request failed with error ${response?.status}"
 	}
 }
 
@@ -782,10 +835,10 @@ def mainPage()
 		{
 			input "enableDebug", "bool", title: "Enable debug output?", required: false, defaultValue: false
 		}
-		section("-= <b>HubConnect ${currentVersion}</b> =-")
+		section("-= <b>HubConnect v${appVersion.major}.${appVersion.minor}</b> =-")
 		{
 			href "aboutPage", title: "Help Support HubConnect!", description: "HubConnect is provided free of charge for the benefit the Hubitat community.  If you find HubConnect to be a valuable tool, please help support the project."
-			paragraph "<span style=\"font-size:.8em\">Remote Client build ${moduleBuild} ${appCopyright}</span>"
+			paragraph "<span style=\"font-size:.8em\">Remote Client v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
 		}
 	}
 }
@@ -805,27 +858,61 @@ def connectPage()
 		createAccessToken()
 	}
 
-	def connected = false
 	def responseText = ""
 	if (serverKey)
 	{
-		def accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
-		if (accessData && accessData?.token)
+		def accessData
+		try
+		{
+			accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
+		}
+		catch (errorException)
+		{
+			log.error "Error reading connection key: ${errorException}."
+			responseText = "Error: Corrupt or invalid connection key"
+			state.connected = false
+            accessData = null
+		}
+		if (accessData && accessData?.token && accessData?.type != "smartthings")
 		{
 			// Set the coordinator hub details
 			state.clientURI = accessData.uri
 			state.clientToken = accessData.token
 			state.clientType = accessData.type
+			state.connectionType = accessData.connectionType
 			
 			// Send our connect string to the coordinator
 			def connectKey = new groovy.json.JsonBuilder([uri: (state.clientType == "local" ? getFullLocalApiServerUrl() : getFullApiServerUrl()), type: state.clientType, token: state.accessToken, mac: location.hubs[0].name]).toString().bytes.encodeBase64()
-			def response = sendGetCommand("/connect/${connectKey}")
+			def response = httpGetWithReturn("/connect/${connectKey}")
 
-			if ("${response.status}" == "success") connected = true
-			else responseText == "<div style=\"color: red\">Error: ${response?.message}</div>"
+			if ("${response.status}" == "success")
+			{
+				state.connected = true
+			}
+			else
+			{
+				state.connected = false
+				responseText = "<div style=\"color: red\">Error: ${response?.message}</div>"
+			}
+		}
+		else if (accessData?.type == "smartthings") responseText = "<div style=\"color: red\">Error: Connection key is not for this platform</div>"
+	}
+
+	// Reset connection data if handshake failed
+	if (serverKey == null || disconnectHub || state.connected == false)
+	{
+		state.clientURI = null
+		state.clientToken = null
+		state.clientType = null
+		state.connectionType = null
+		state.connected = false
+		if (disconnectHub)
+		{
+			app.updateSetting("serverKey", [type: "string", value: ""])
+			app.updateSetting("disconnectHub", [type: "bool", value: false])
 		}
 	}
-	
+
 	dynamicPage(name: "connectPage", uninstall: false, install: false)
 	{
 		section("Server Details")
@@ -835,7 +922,11 @@ def connectPage()
 		}
 		section()
 		{
-			if (connected) paragraph "<b style=\"color:green\">Connected!</b>"
+			if (state.connected)
+			{
+				paragraph "<b style=\"color:green\">Connected!</b>"
+				input "disconnectHub", "bool", title: "Disconnect Server Hub...", description: "This will erase the connection key.", required: false, submitOnChange: true
+			}
 			else paragraph "<b style=\"color:red\">Not Connected</b>${responseText}"
 		}
 	}
@@ -855,7 +946,7 @@ def devicePage()
 	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
 	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
 	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
+	def otherDevicePageCount = genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
 
 	def totalNativeDevices = 0
 	def requiredDrivers = ""
@@ -1060,6 +1151,10 @@ def otherDevicePage()
 
 	dynamicPage(name: "otherDevicePage", uninstall: false, install: false)
 	{
+		section("<b>-= Select SmartThings Arrival Sensors (${smartThingsArrival?.size() ?: "0"} connected) =-</b>")
+		{
+			input "smartThingsArrival", "capability.presenceSensor", title: "SmartThings Arrival Sensors (presence, tone):", required: false, multiple: true, defaultValue: null
+		}
 		section("<b>-= Select Presence Sensors (${genericPresences?.size() ?: "0"} connected) =-</b>")
 		{
 			input "genericPresences", "capability.presenceSensor", title: "Presence Sensors (presence, alarm):", required: false, multiple: true, defaultValue: null
@@ -1121,7 +1216,7 @@ def customDevicePage()
 */
 def aboutPage()
 {
-	dynamicPage(name: "aboutPage", title: "HubConnect ${currentVersion}", uninstall: false, install: false)
+	dynamicPage(name: "aboutPage", title: "HubConnect v${appVersion.major}.${appVersion.minor}", uninstall: false, install: false)
 	{
 		section()
 		{
@@ -1131,12 +1226,11 @@ def aboutPage()
 		section()
 		{
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
-			paragraph "<span style=\"font-size:.8em\">Remote Client build ${moduleBuild} ${appCopyright}</span>"
+			paragraph "<span style=\"font-size:.8em\">Remote Client v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
 		}
 	}
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getCurrentVersion(){1.1}
-def getModuleBuild(){1.5}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

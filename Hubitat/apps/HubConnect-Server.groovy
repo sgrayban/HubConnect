@@ -103,10 +103,10 @@ def mainPage()
 		{
 			input "haltComms", "bool", title: "Suspend all communications between this server and all remote hubs?  (Resets at reboot)", required: false, defaultValue: false
 		}
-		section("-= <b>HubConnect ${currentVersion}</b> =-")
+		section("-= <b>HubConnect v${appVersion.major}.${appVersion.minor}</b> =-")
 		{
 			href "aboutPage", title: "Help Support HubConnect!", description: "HubConnect is provided free of charge for the benefit the Hubitat community.  If you find HubConnect to be a valuable tool, please help support the project."
-			paragraph "<span style=\"font-size:.8em\">Server Container build ${moduleBuild} ${appCopyright}</span>"
+			paragraph "<span style=\"font-size:.8em\">Server Container v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
 		}
 	}
 }
@@ -433,7 +433,7 @@ def pushSystemMode()
 */
 def aboutPage()
 {
-	dynamicPage(name: "aboutPage", title: "HubConnect ${currentVersion}", uninstall: false, install: false)
+	dynamicPage(name: "aboutPage", title: "HubConnect v${appVersion.major}.${appVersion.minor}", uninstall: false, install: false)
 	{
 		section()
 		{
@@ -443,11 +443,10 @@ def aboutPage()
 		section()
 		{
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
-			paragraph "<span style=\"font-size:.8em\">Remote Client build ${moduleBuild} ${appCopyright}</span>"
+			paragraph "<span style=\"font-size:.8em\">Server Container  v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
 		}
 	}
 }
 
-def getCurrentVersion(){1.1}
-def getModuleBuild(){1.4}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

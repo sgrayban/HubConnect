@@ -22,6 +22,8 @@ metadata
 		capability "Motion Sensor"
 		capability "PushableButton"
 		capability "Refresh"
+
+		attribute "version", "string"
 		
 		command "sync"
 	}
@@ -80,7 +82,7 @@ def parse(String description)
 def push(btn)
 {
 	// The server will update pushed status
-	parent.sendDeviceEvent(device.deviceNetworkId, "pushed", btn)
+	parent.sendDeviceEvent(device.deviceNetworkId, "pushed", [btn])
 }
 
 
@@ -105,4 +107,6 @@ def sync()
 {
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "ringdoorbell")
+	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}

@@ -17,9 +17,11 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Contact Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Contact-Sensor.groovy")
+	definition(name: "HubConnect Multipurpose Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Multipurpose-Sensor.groovy")
 	{
 		capability "Contact Sensor"
+		capability "Acceleration Sensor"
+		capability "Three Axis"
 		capability "Temperature Measurement"
 		capability "Battery"
 		capability "Refresh"
@@ -29,20 +31,30 @@ metadata
 		command "sync"
 	}
 
-	tiles(scale: 2)
-	{
-		multiAttributeTile(name: "contact", type: "generic", width: 6, height: 4)
+	tiles(scale: 2) {
+		multiAttributeTile(name: "status", type: "generic", width: 6, height: 4)
 		{
 			tileAttribute("device.contact", key: "PRIMARY_CONTROL")
 			{
-				attributeState "open", label: '${name}', icon: "st.contact.contact.open", backgroundColor: "#e86d13"
-				attributeState "closed", label: '${name}', icon: "st.contact.contact.closed", backgroundColor: "#00A0DC"
+				attributeState "open", label: 'Open', icon: "st.contact.contact.open", backgroundColor: "#e86d13"
+				attributeState "closed", label: 'Closed', icon: "st.contact.contact.closed", backgroundColor: "#00a0dc"
+				attributeState "garage-open", label: 'Open', icon: "st.doors.garage.garage-open", backgroundColor: "#e86d13"
+				attributeState "garage-closed", label: 'Closed', icon: "st.doors.garage.garage-closed", backgroundColor: "#00a0dc"
 			}
 		}
-
-		valueTile("temperature", "device.temperature", inactiveLabel: false, width: 2, height: 2)
+		standardTile("contact", "device.contact", width: 2, height: 2)
 		{
-			state "temperature", label: '${currentValue}°',
+			state("open", label: 'Open', icon: "st.contact.contact.open", backgroundColor: "#e86d13")
+			state("closed", label: 'Closed', icon: "st.contact.contact.closed", backgroundColor: "#00a0dc")
+		}
+		standardTile("acceleration", "device.acceleration", width: 2, height: 2)
+		{
+			state("active", label: 'Active', icon: "st.motion.acceleration.active", backgroundColor: "#00a0dc")
+			state("inactive", label: 'Inactive', icon: "st.motion.acceleration.inactive", backgroundColor: "#cccccc")
+		}
+		valueTile("temperature", "device.temperature", width: 2, height: 2)
+		{
+			state("temperature", label: '${currentValue}°',
 					backgroundColors: [
 							[value: 31, color: "#153591"],
 							[value: 44, color: "#1e9cbb"],
@@ -52,27 +64,27 @@ metadata
 							[value: 95, color: "#d04e00"],
 							[value: 96, color: "#bc2323"]
 					]
+			)
 		}
-		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 3, height: 2)
+		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2)
 		{
 			state "battery", label: '${currentValue}% battery', unit: ""
 		}
-
-		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
+		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
 			state "default", action: "refresh.refresh", icon: "st.secondary.refresh"
 		}
-		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
+		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
 			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
 		}
-		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 		{
 			state "default", label: '${currentValue}'
 		}
 
-		main(["contact", "temperature"])
-		details(["contact", "sync", "temperature", "refresh", "battery", "version"])
+		main(["status", "acceleration", "temperature"])
+		details(["status", "acceleration", "temperature", "battery", "sync", "refresh", "version"])
 	}
 }
 
@@ -142,6 +154,6 @@ def refresh()
 def sync()
 {
 	// The server will respond with updated status and details
-	parent.syncDevice(device.deviceNetworkId, "contact")
+	parent.syncDevice(device.deviceNetworkId, "multipurpose")
 }
 def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
