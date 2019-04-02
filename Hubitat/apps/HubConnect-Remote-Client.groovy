@@ -1124,7 +1124,7 @@ def safetySecurityPage()
 		}
 		section("<b>-= Select Keypads (${genericKeypads?.size() ?: "0"} connected) =-</b>")
 		{
-			input "genericKeypads", "device.CentraliteKeypad", title: "Keypads (motion, temperature, tamper, alarm):", required: false, multiple: true, defaultValue: null
+			input "genericKeypads", "capability.securityKeypad", title: "Keypads (motion, temperature, tamper, alarm):", required: false, multiple: true, defaultValue: null
 		}
 		section("<b>-= Select Locks (${genericLocks?.size() ?: "0"} connected) =-</b>")
 		{
@@ -1232,5 +1232,5 @@ def aboutPage()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

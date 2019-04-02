@@ -1132,7 +1132,7 @@ def safetySecurityPage()
 		}
 		section("-= Select Keypads (${genericKeypads?.size() ?: "0"} connected) =-")
 		{
-			input "genericKeypads", "device.CentraliteKeypad", title: "Keypads (motion, temperature, tamper, alarm):", required: false, multiple: true, defaultValue: null
+			input "genericKeypads", "capability.securityKeypad", title: "Keypads (motion, temperature, tamper, alarm):", required: false, multiple: true, defaultValue: null
 		}
 		section("-= Select Locks (${genericLocks?.size() ?: "0"} connected) =-")
 		{
@@ -1245,5 +1245,5 @@ def customDevicePage()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 0]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
