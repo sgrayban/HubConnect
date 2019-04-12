@@ -157,8 +157,8 @@ def parse(String description)
 	def eventData = null
 	try
 	{
-		eventData = new groovy.json.JsonSlurper().parseText(description)
-    }
+		eventData = parseJson(description)
+	}
 	catch(errorException)
 	{
 		log.error "Failed to parse event data: ${errorException}"
@@ -211,4 +211,4 @@ def pushCurrentMode()
 {
 	parent.pushCurrentMode()
 }
-def getDriverVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}

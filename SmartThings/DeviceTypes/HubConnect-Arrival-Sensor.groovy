@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Arrival Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Arrival-Sensor.groovy")
+	definition(name: "HubConnect Arrival Sensor", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.sensor", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Arrival-Sensor.groovy")
 	{
 		capability "Presence Sensor"
 		capability "Tone"
@@ -121,4 +121,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "arrival")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

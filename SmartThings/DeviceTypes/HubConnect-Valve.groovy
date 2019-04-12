@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Valve", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Valve.groovy")
+	definition(name: "HubConnect Valve", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.watervalve", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Valve.groovy")
 	{
 		capability "Valve"
 		capability "Refresh"
@@ -159,4 +159,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "valve")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

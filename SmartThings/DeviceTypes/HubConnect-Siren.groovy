@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Siren", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Siren.groovy")
+	definition(name: "HubConnect Siren", namespace: "shackrat", author: "Steve White", ocfDeviceType: "x.com.st.d.siren", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Siren.groovy")
 	{
 		capability "Actuator"
 		capability "Alarm"
@@ -28,6 +28,48 @@ metadata
 		attribute "version", "string"
 		
 		command "sync"
+	}
+
+	tiles
+	{
+		standardTile("alarm", "device.alarm", width: 2, height: 2)
+		{
+			state "off", label: 'off', action: 'alarm.both', icon: "st.alarm.alarm.alarm", backgroundColor: "#ffffff"
+			state "both", label: 'alarm!', action: 'alarm.off', icon: "st.alarm.alarm.alarm", backgroundColor: "#e86d13"
+		}
+		standardTile("off", "device.alarm", inactiveLabel: false, decoration: "flat")
+		{
+			state "default", label: '', action: "alarm.off", icon: "st.secondary.off"
+		}
+		standardTile("siren", "device.alarm", inactiveLabel: false, decoration: "flat")
+		{
+			state "off", label: 'siren', action: "alarm.siren", icon: "st.alarm.alarm.alarm", backgroundColor: "#ffffff", defaultState: true			
+			state "siren", label: 'siren on!', action: "alarm.off", icon: "st.alarm.alarm.alarm", backgroundColor: "#e86d13"		
+		}
+		standardTile("strobe", "device.alarm", inactiveLabel: false, decoration: "flat")
+		{
+			state "off", label: 'strobe', action: "alarm.strobe", icon:"st.alarm.alarm.alarm", backgroundColor: "#ffffff", defaultState: true			
+			state "strobe", label: 'strobe on!', action: "alarm.off", icon:"st.alarm.alarm.alarm", backgroundColor: "#e86d13"
+		}
+		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat")
+		{
+			state "battery", label: '${currentValue}% battery', unit: ""
+		}
+		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat")
+		{
+			state "default", label: '', action: "refresh.refresh", icon: "st.secondary.refresh"
+		}
+		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat")
+		{
+			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
+		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat")
+		{
+			state "default", label: '${currentValue}'
+		}
+
+		main "alarm"
+		details(["alarm", "siren", "strobe", "off", "sync", "refresh", "battery", "version"])
 	}
 }
 
@@ -159,4 +201,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "siren")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 2]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

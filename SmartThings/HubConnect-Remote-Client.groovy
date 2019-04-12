@@ -21,7 +21,7 @@
  *
  */
 import groovy.transform.Field
-import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 include 'asynchttp_v1'
 definition(
 	name: "HubConnect Remote Client",
@@ -99,7 +99,11 @@ mappings
 	{
 		action: [GET: "getDeviceSync"]
 	}
-    path("/modes/:name")
+    path("/modes/get")
+	{
+		action: [GET: "getAllModes"]
+	}
+    path("/modes/set/:name")
 	{
 		action: [GET: "serverModeChangeEvent"]
 	}
@@ -110,6 +114,10 @@ mappings
 	path("/system/drivers/save")
 	{
 		action: [POST: "saveCustomDrivers"]
+	}
+    path("/system/versions/get")
+	{
+		action: [GET: "getVersions"]
 	}
 
 	// Server mappings
@@ -188,7 +196,7 @@ def getDevice(params)
 */
 def remoteDeviceCommand()
 {
-	def commandParams = params.commandParams ? new JsonSlurper().parseText(new String(URLDecoder.decode(params.commandParams))) : null
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
 
 	// Get the device
 	def device = getDevice(params)
@@ -201,7 +209,7 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == null)
+	if (!device.hasCommand(params.deviceCommand))
 	{
 		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
@@ -335,7 +343,7 @@ def realtimeEventHandler(evt)
 		data:			evt.data
 	]
 	
-	def data = URLEncoder.encode(new groovy.json.JsonBuilder(event).toString())
+	def data = URLEncoder.encode(JsonOutput.toJson(event), "UTF-8")
 
 	if (enableDebug) log.debug "Sending event to server: ${evt.device?.label ?: evt.device?.name} [${evt.name}: ${evt.value} ${evt.unit}]"
 	sendGetCommand("/device/${evt.deviceId}/event/${data}")
@@ -454,7 +462,7 @@ def deviceEvent()
 	def eventraw = params.event ? URLDecoder.decode(params.event) : null
 	if (eventraw == null) return
 
-	def event = new JsonSlurper().parseText(new String(eventraw))
+	def event = parseJson(new String(eventraw))
 	def data = event?.data ?: ""
     def unit = event?.unit ?: ""
 
@@ -718,6 +726,21 @@ def setCommStatus()
 
 
 /*
+	getAllModes
+    
+	Purpose: Returns a list of all configured modes.
+
+	URL Format: (GET) /modes/get
+
+	Notes: Called from HTTP request from controller hub.
+*/
+def getAllModes()
+{
+	jsonResponse(modes: location.modes, active: location.mode)
+}
+
+
+/*
 	saveCustomDrivers
     
 	Purpose: Saves custom drivers defined in server app to this client instance
@@ -820,7 +843,7 @@ def initialize()
 */
 def jsonResponse(respMap)
 {
-	render contentType: 'application/json', data: new groovy.json.JsonBuilder(respMap).toString()
+	render contentType: 'application/json', data: JsonOutput.toJson(respMap)
 }
 
 
@@ -872,7 +895,7 @@ def connectPage()
 		def accessData
 		try
 		{
-			accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
+			accessData = parseJson(new String(serverKey.decodeBase64()))
 		}
 		catch (errorException)
 		{
@@ -1244,6 +1267,26 @@ def customDevicePage()
 	}
 }
 
+
+/*
+	getVersions
+
+	URL Format: (GET) /system/versions/get
+
+	Purpose: Returns Remote Client & Active driver versions to server container.
+*/
+def getVersions()
+{
+	// Get hub app & drivers
+	def remoteDrivers = [:]
+	getChildDevices()?.each
+	{
+	   device ->
+		if (remoteDrivers[device.typeName] == null) remoteDrivers[device.typeName] = device.getDriverVersion()
+	}
+	jsonResponse([apps: [[appName: app.label, appVersion: appVersion]], drivers: remoteDrivers])
+}
+
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

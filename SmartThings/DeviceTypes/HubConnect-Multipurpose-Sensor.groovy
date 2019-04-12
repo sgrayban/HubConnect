@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Multipurpose Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Multipurpose-Sensor.groovy")
+	definition(name: "HubConnect Multipurpose Sensor", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.sensor", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Multipurpose-Sensor.groovy", mnmn: "SmartThings", vid: "generic-contact-2")
 	{
 		capability "Contact Sensor"
 		capability "Acceleration Sensor"
@@ -156,4 +156,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "multipurpose")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

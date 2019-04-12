@@ -21,7 +21,7 @@
  *
  */
 import groovy.transform.Field
-import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 definition(
 	name: "HubConnect Remote Client",
 	namespace: "shackrat",
@@ -98,7 +98,11 @@ mappings
 	{
 		action: [GET: "getDeviceSync"]
 	}
-    path("/modes/:name")
+    path("/modes/get")
+	{
+		action: [GET: "getAllModes"]
+	}
+    path("/modes/set/:name")
 	{
 		action: [GET: "serverModeChangeEvent"]
 	}
@@ -109,6 +113,10 @@ mappings
 	path("/system/drivers/save")
 	{
 		action: [POST: "saveCustomDrivers"]
+	}
+    path("/system/versions/get")
+	{
+		action: [GET: "getVersions"]
 	}
 	
 	// Server mappings
@@ -187,7 +195,7 @@ def getDevice(params)
 */
 def remoteDeviceCommand()
 {
-	def commandParams = params.commandParams ? new JsonSlurper().parseText(new String(URLDecoder.decode(params.commandParams))) : null
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
 
 	// Get the device
 	def device = getDevice(params)
@@ -200,7 +208,7 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == null)
+	if (!device.hasCommand(params.deviceCommand))
 	{
 		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
@@ -244,7 +252,7 @@ def remoteDeviceCommand()
     
 	Purpose: Event handler for server (controller) mode change events.
 
-	URL Format: (GET) /modes/:name
+	URL Format: (GET) /modes/set/:name
 
 	Notes: Called from HTTP request from controller hub.
 */
@@ -328,7 +336,7 @@ def realtimeEventHandler(evt)
 		data:			evt.data
 	]
 	
-	def data = URLEncoder.encode(new groovy.json.JsonBuilder(event).toString())
+	def data = URLEncoder.encode(JsonOutput.toJson(event), "UTF-8")
 
 	if (enableDebug) log.debug "Sending event to server: ${evt.device.label ?: evt.device.name} [${evt.name}: ${evt.value} ${evt.unit}]"
 	sendGetCommand("/device/${evt.deviceId}/event/${data}")
@@ -367,6 +375,23 @@ private getSupportedAttributes(deviceClass)
 	if (NATIVE_DEVICES.find{it.key == deviceClass}) return NATIVE_DEVICES[deviceClass].attr
 	if (state.customDrivers.find{it.key == deviceClass}) return state.customDrivers[deviceClass].attr
 	return null
+}
+
+
+/*
+	realtimeModeChangeHandler
+    
+	URL Format: GET /modes/set/modeName
+
+	Purpose: Event handler for mode change events on the controller hub (this one).
+*/
+def realtimeModeChangeHandler(evt)
+{
+	if (!pushModes) return
+
+	def newMode = evt.value
+	if (enableDebug) log.debug "Sending mode change event to server: ${newMode}"
+	sendGetCommand("/modes/set/${URLEncoder.encode(newMode)}")
 }
 
 
@@ -447,7 +472,7 @@ def deviceEvent()
 	def eventraw = params.event ? URLDecoder.decode(params.event) : null
 	if (eventraw == null) return
 
-	def event = new JsonSlurper().parseText(new String(eventraw))
+	def event = parseJson(new String(eventraw))
 	def data = event?.data ?: ""
 	def unit = event?.unit ?: ""
 
@@ -711,6 +736,21 @@ def setCommStatus()
 
 
 /*
+	getAllModes
+    
+	Purpose: Returns a list of all configured modes.
+
+	URL Format: (GET) /modes/get
+
+	Notes: Called from HTTP request from controller hub.
+*/
+def getAllModes()
+{
+	jsonResponse(modes: location.modes, active: location.mode)
+}
+
+
+/*
 	saveCustomDrivers
     
 	Purpose: Saves custom drivers defined in server app to this client instance
@@ -796,6 +836,7 @@ def initialize()
 	{
 		saveDevicesToServer()
 		subscribeLocalEvents()
+		subscribe(location, "mode", realtimeModeChangeHandler)
 		runEvery1Minute("appHealth")
 	}
     
@@ -810,7 +851,26 @@ def initialize()
 */
 def jsonResponse(respMap)
 {
-	render contentType: 'application/json', data: new groovy.json.JsonBuilder(respMap).toString()
+	render contentType: 'application/json', data: JsonOutput.toJson(respMap)
+}
+
+
+/*
+	getDevicePageStatus
+    
+	Purpose: Helper function to set flags for configured devices.
+*/
+def getDevicePageStatus()
+{
+	def status =
+	[
+		sensorsPage: genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size(),
+		shackratsDriverPage: smartPlugs?.size() ?: zwaveRepeaters?.size(),
+		switchDimmerBulbPage: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size(),
+		safetySecurityPage: genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size(),
+		otherDevicePage: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
+	]
+	status << [all: status.sensorsPage ?: status.shackratsDriverPage ?: status.switchDimmerBulbPage ?: status.safetySecurityPage ?: status.otherDevicePage]
 }
 
 
@@ -829,7 +889,8 @@ def mainPage()
 		section("-= <b>Main Menu</b> =-")
 		{
 			href "connectPage", title: "Connect to Server Hub...", description: "", state: serverURL ? "complete" : null
-			if (state.clientURI?.size() > 10) href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+			if (state.clientURI?.size() > 10) href "devicePage", title: "Select devices to synchronize to Server hub...", description: "", state: devicePageStatus.all ? "complete" : null
+			input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
 		}
 		section("-= <b>Debug Menu</b> =-")
 		{
@@ -864,7 +925,7 @@ def connectPage()
 		def accessData
 		try
 		{
-			accessData = new JsonSlurper().parseText(new String(serverKey.decodeBase64()))
+			accessData = parseJson(new String(serverKey.decodeBase64()))
 		}
 		catch (errorException)
 		{
@@ -942,12 +1003,6 @@ def connectPage()
 */
 def devicePage()
 {
-	def sensorsPageCount = genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size()
-	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
-	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
-	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
-
 	def totalNativeDevices = 0
 	def requiredDrivers = ""
 	NATIVE_DEVICES.each
@@ -971,11 +1026,11 @@ def devicePage()
 	{
 		section("<b> Select Devices to Link to Coordinator Hub </b>  (${totalDevices} connected)")
 		{ 
-			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: sensorsPageCount ? "complete" : null
-			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: shackratsDriverPageCount ? "complete" : null
-			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: switchDimmerBulbPageCount ? "complete" : null
-			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: safetySecurityPageCount ? "complete" : null
-			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: otherDevicePageCount ? "complete" : null
+			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: devicePageStatus.sensorsPage ? "complete" : null
+			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: devicePageStatus.shackratsDriverPage ? "complete" : null
+			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switchDimmerBulbPage ? "complete" : null
+			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safetySecurityPage ? "complete" : null
+			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: devicePageStatus.otherDevicePage ? "complete" : null
 			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
 		}
 		if (requiredDrivers?.size())
@@ -1231,6 +1286,26 @@ def aboutPage()
 	}
 }
 
+
+/*
+	getVersions
+
+	URL Format: (GET) /system/versions/get
+
+	Purpose: Returns Remote Client & Active driver versions to server container.
+*/
+def getVersions()
+{
+	// Get hub app & drivers
+	def remoteDrivers = [:]
+	getChildDevices()?.each
+	{
+	   device ->
+		if (remoteDrivers[device.typeName] == null) remoteDrivers[device.typeName] = device.getDriverVersion()
+	}
+	jsonResponse([apps: [[appName: app.label, appVersion: appVersion]], drivers: remoteDrivers])
+}
+
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

@@ -18,7 +18,7 @@
 import groovy.json.JsonSlurper
 metadata 
 {
-	definition(name: "HubConnect Thermostat", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Thermostat.groovy")
+	definition(name: "HubConnect Thermostat", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.thermostat", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Thermostat.groovy")
 	{
 		capability "Sensor"
 		capability "Thermostat"
@@ -476,4 +476,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "thermostat")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

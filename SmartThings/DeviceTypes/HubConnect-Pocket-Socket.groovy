@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Pocket Socket", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Pocket-Socket.groovy")
+	definition(name: "HubConnect Pocket Socket", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.smartplug", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Pocket-Socket.groovy", mnmn: "SmartThings", vid: "generic-switch-power")
 	{
 		capability "Switch"
 		capability "Power Meter"
@@ -154,4 +154,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "pocketsocket")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

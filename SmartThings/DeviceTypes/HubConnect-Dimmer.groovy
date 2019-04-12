@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Dimmer", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Dimmer.groovy")
+	definition(name: "HubConnect Dimmer", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.light", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Dimmer.groovy")
 	{
 		capability "Switch"
 		capability "Switch Level"
@@ -166,4 +166,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "dimmer")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

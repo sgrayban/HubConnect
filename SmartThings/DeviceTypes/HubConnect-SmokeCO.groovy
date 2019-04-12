@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Smoke/CO Detector", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-SmokeCO.groovy")
+	definition(name: "HubConnect Smoke/CO Detector", namespace: "shackrat", author: "Steve White", ocfDeviceType: "x.com.st.d.sensor.smoke", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-SmokeCO.groovy")
 	{
 		capability "Smoke Detector"
 		capability "Carbon Monoxide Detector"
@@ -128,4 +128,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "smoke")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

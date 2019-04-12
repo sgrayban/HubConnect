@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Switch", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Switch.groovy")
+	definition(name: "HubConnect Switch", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.switch", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Switch.groovy")
 	{
 		capability "Switch"
 		capability "Refresh"
@@ -149,4 +149,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "switch")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}

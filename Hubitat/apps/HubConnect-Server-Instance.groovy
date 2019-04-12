@@ -21,7 +21,7 @@
  *
  */
 import groovy.transform.Field
-import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 definition(
 	name: "HubConnect Server Instance",
 	namespace: "shackrat",
@@ -94,6 +94,10 @@ mappings
 	{
 		action: [POST: "saveDevices"]
 	}
+    path("/devices/get")
+	{
+		action: [GET: "getAllDevices"]
+	}
     path("/device/:deviceId/event/:event")
 	{
 		action: [GET: "deviceEvent"]
@@ -117,6 +121,14 @@ mappings
 	{
 		action: [GET: "syncRemoteDevice"]
 	}
+    path("/modes/get")
+	{
+		action: [GET: "getAllModes"]
+	}
+	path("/modes/set/:name")
+	{
+		action: [GET: "clientModeChangeEvent"]
+	}
 }
 
 
@@ -133,7 +145,7 @@ def syncDevice(deviceId, deviceType)
 {
 	def dniParts = deviceId.split(":")
 
-	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${deviceId}"}
+	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${deviceId}") }
 	if (childDevice)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
@@ -188,14 +200,14 @@ def deviceEvent()
 	def eventraw = params.event ? URLDecoder.decode(params.event) : null
 	if (eventraw == null) return
 
-	def event = new JsonSlurper().parseText(new String(eventraw))
+	def event = parseJson(eventraw)
 	def data = event?.data ?: ""
 	def unit = event?.unit ?: ""
 
-	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${clientIP}:${params.deviceId}"}
+	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${params.deviceId}") }
 	if (childDevice)
 	{
-		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
+		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${unit}]"
 		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
 	}
 	else if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
@@ -212,7 +224,7 @@ def deviceEvent()
 */
 def wsSendEvent(event)
 {
-	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${clientIP}:${event.deviceId}"}
+	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${event.deviceId}") }
 	if (childDevice)
 	{
 		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${event.unit}]"
@@ -224,7 +236,7 @@ def wsSendEvent(event)
 /*
 	realtimeModeChangeHandler
     
-	URL Format: GET /modes/modeName
+	URL Format: GET /modes/set/modeName
 
 	Purpose: Event handler for mode change events on the controller hub (this one).
 */
@@ -234,7 +246,7 @@ def realtimeModeChangeHandler(evt)
 	def newMode = evt.value
 
 	if (enableDebug) log.debug "Sending mode change event to ${clientName}: ${newMode}"
-	sendGetCommand("/modes/${URLEncoder.encode(newMode)}")
+	sendGetCommand("/modes/set/${URLEncoder.encode(newMode)}")
 }
 
 
@@ -412,7 +424,7 @@ def getDevice(params)
 */
 def remoteDeviceCommand()
 {
-	def commandParams = params.commandParams ? new JsonSlurper().parseText(new String(URLDecoder.decode(params.commandParams))) : null
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
 
 	// Get the device
 	def device = getDevice(params)
@@ -425,7 +437,7 @@ def remoteDeviceCommand()
 	if (enableDebug) log.info "Received command from client: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
 	
 	// Make sure the physical device supports the command
-	if (device.supportedCommands.find{it.toString() == params.deviceCommand} == null)
+	if (!device.hasCommand(params.deviceCommand))
 	{
 		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
@@ -461,6 +473,34 @@ def remoteDeviceCommand()
 	}
 	
 	jsonResponse([status: "success"])
+}
+
+
+/*
+	clientModeChangeEvent
+    
+	Purpose: Event handler for client (remote) mode change events.
+
+	URL Format: (GET) /modes/set/:name
+
+	Notes: Called from HTTP request from remote hub.
+*/
+def clientModeChangeEvent()
+{
+	if (!receiveModes) return
+    def modeName = params?.name ? URLDecoder.decode(params?.name) : ""
+
+    if (location.modes?.find{it.name == modeName})
+	{
+		if (enableDebug) log.debug "Received mode event from ${clientName}: ${modeName}"
+		setLocationMode(modeName)
+		jsonResponse([status: "complete"])		
+	}
+	else
+	{
+		log.error "Received mode event from client: ${modeName} does not exist!"
+		jsonResponse([status: "error"])	
+    }
 }
 
 
@@ -515,14 +555,14 @@ def realtimeEventHandler(evt)
 	[
 		name:			evt.name,
 		value:			evt.value,
-		unit:			remoteType != "smartthings" ? evt.unit : evt.unit?.replace("°", ""),
+		unit:			remoteType != "smartthings" ? evt.unit : evt.unit?.replace("°", "")?.replace("%", ""),
 		isStateChange:	evt.isStateChange,
 		data:			evt.data
 	]
-	
-	def data = URLEncoder.encode(new groovy.json.JsonBuilder(event).toString())
 
-	if (enableDebug) log.debug "Sending event to server: ${evt.device.label ?: evt.device.name} [${evt.name}: ${evt.value} ${evt.unit}]"
+	def data = URLEncoder.encode(JsonOutput.toJson(event), "UTF-8")
+
+	if (enableDebug) log.debug "Sending event to ${clientName}: ${evt.device.label ?: evt.device.name} [${evt.name}: ${evt.value} ${evt.unit}]"
 	sendGetCommand("/device/${evt.deviceId}/event/${data}")
 }
 
@@ -544,6 +584,20 @@ def getAttributeMap(device, deviceClass)
 			currentAttributes << [name: "${it}", value: device.currentValue("${it}"), unit: it == "temperature" ? "°"+getTemperatureScale() : it == "power" ? "W" :  it == "voltage" ? "V" : ""]
 	}
 	return currentAttributes
+}
+
+
+/*
+	getCommandMap
+
+	Purpose: Returns a map of support commands for (device)
+
+	Note: This applies to the device as it exists on this hub.
+		  Virtual devices may expose commands that the physical device does not support.
+*/
+def getCommandMap(device)
+{
+    return device.supportedCommands.collectEntries { command-> [ (command?.name): (command?.arguments) ] }
 }
 
 
@@ -720,6 +774,25 @@ def sendPostCommand(command, data)
 
 
 /*
+	getDevicePageStatus
+    
+	Purpose: Helper function to set flags for configured devices.
+*/
+def getDevicePageStatus()
+{
+	def status =
+	[
+		sensorsPage: genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size(),
+		shackratsDriverPage: smartPlugs?.size() ?: zwaveRepeaters?.size(),
+		switchDimmerBulbPage: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size(),
+		safetySecurityPage: genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size(),
+		otherDevicePage: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
+	]
+	status << [all: status.sensorsPage ?: status.shackratsDriverPage ?: status.switchDimmerBulbPage ?: status.safetySecurityPage ?: status.otherDevicePage]
+}
+
+
+/*
 	mainPage
     
 	Purpose: Displays the main (landing) page.
@@ -733,12 +806,6 @@ def mainPage()
 		app.updateLabel(clientName)
 	}
 	
-	def devicesConfigured = genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size()
-		?: smartPlugs?.size() ?: zwaveRepeaters?.size()
-		?: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
-		?: genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-		?: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
-
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
 		if (state.clientURI)
@@ -750,9 +817,15 @@ def mainPage()
 			href "connectPage", title: "Connect to Client Hub...", description: "", state: state.clientURI ? "complete" : null
 			if (state.clientURI)
 			{
-				href "devicePage", title: "Connect local devices to Client Hub...", description: "", state: devicesConfigured ? "complete" : null
-				input "pushModes", "bool", title: "Push mode changes to Client Hub?", description: "", defaultValue: false
+				href "devicePage", title: "Connect local devices to Client Hub...", description: "", state: devicePageStatus.all ? "complete" : null
 			}
+		}
+		section("-= <b>Mode Menu</b> =-")
+		{
+				paragraph "Synchronize mode changes on the server to this remote (client) hub."
+				input "pushModes", "bool", title: "Send mode changes to Client Hub?", defaultValue: false
+				paragraph "Synchronize mode changes from this remote (client) hub to the Server hub.."
+				input "receiveModes", "bool", title: "Receive mode changes from Client Hub?", description: "", defaultValue: false
 		}
 		section("-= <b>Debug Menu</b> =-")
 		{
@@ -780,7 +853,8 @@ def connectPage()
 		createAccessToken()
 	}
 
-	def connectString = remoteType ? new groovy.json.JsonBuilder([uri: remoteType == "local" ? getFullLocalApiServerUrl() : getFullApiServerUrl(), type: remoteType, token: state.accessToken, connectionType: localConnectionType ?: ""]).toString().bytes.encodeBase64() : ""
+	if (remoteType == "homebridge") app.updateSetting("localConnectionType", [type: "enum", value: "http"])
+	def connectString = remoteType ? new groovy.json.JsonBuilder([uri: (remoteType == "local" || remoteType == "homebridge") ? getFullLocalApiServerUrl() : getFullApiServerUrl(), type: remoteType, token: state.accessToken, connectionType: localConnectionType ?: ""]).toString().bytes.encodeBase64() : ""
 
 	dynamicPage(name: "connectPage", uninstall: false, install: false)
 	{
@@ -788,14 +862,14 @@ def connectPage()
 		{ 
 			input "clientName", "string", title: "Friendly Name of Client Hub:", required: false, defaultValue: null, submitOnChange: true
 			if (clientName) input "clientIP", "string", title: "Private LAN IP Address of Client Hub:", required: false, defaultValue: null, submitOnChange: true
-			if (clientIP) input "remoteType", "enum", title: "Type of Remote Hub:", options: [local: "Hubitat (LAN)", remote: "Hubitat (Internet)", smartthings: "SmartThings"], required: false, defaultValue: null, submitOnChange: true			
+			if (clientIP) input "remoteType", "enum", title: "Type of Remote Hub:", options: [local: "Hubitat (LAN)", remote: "Hubitat (Internet)", homebridge: "HomeBridge", smartthings: "SmartThings"], required: false, defaultValue: null, submitOnChange: true			
 			if (remoteType == "local") input "localConnectionType", "enum", title: "Local connect type:", options: [http: "Hubitat oAuth (http)", socket: "Hubitat Event Socket"], required: false, defaultValue: null, submitOnChange: true	
 		}
 		if (remoteType)
 		{
 			section("Connection Key")
 			{ 
-				if (remoteType == "local") paragraph("Local LAN Hub: Copy &amp; Paste this Connection Key into the Remote hub's configuration: <input type=\"text\" size=\"100\" value=\"${connectString}\" />")
+				if (remoteType == "local" || remoteType == "homebridge") paragraph("Local LAN Hub: Copy &amp; Paste this Connection Key into the Remote hub's configuration: <input type=\"text\" size=\"100\" value=\"${connectString}\" />")
 				else paragraph("Internet Hub: Copy &amp; Paste this Connection Key into the Remote hub's configuration: <input type=\"text\" size=\"100\" value=\"${connectString}\" />")
 			}
 		}
@@ -816,7 +890,7 @@ def connectRemoteHub()
 {
 	if (params.data == null) return
 	
-	def accessData = new JsonSlurper().parseText(new String(params.data.decodeBase64()))
+	def accessData = parseJson(new String(params.data.decodeBase64()))
 	if (!accessData || !accessData?.token || !accessData?.mac)
 	{
 		return jsonResponse([status: "error", message: "Invalid connect Key"])
@@ -845,25 +919,24 @@ def connectRemoteHub()
 */
 def registerPing()
 {
+	if (enableDebug) log.trace "Received ping from ${clientName}."
+	state.lastCheckIn = now()
+
 	if (state.connectStatus == "warning" || state.connectStatus == "offline")
 	{
-		// A little recovery for system mode, in case the hub coming online missed a mode change
-		if (pushModes)
-		{	
-			sendGetCommand("/modes/${URLEncoder.encode(location.mode)}")
-		}
-
 		state.connectStatus = "online"
 		app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
 		log.info "${clientName} is online."
 
 		sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
+
+		// A little recovery for system mode, in case the hub coming online missed a mode change
+		if (pushModes)
+		{	
+			sendGetCommand("/modes/set/${URLEncoder.encode(location.mode)}")
+		}
 	}
 	
-	if (enableDebug) log.trace "Received ping from ${clientName}."
-	
-	state.lastCheckIn = now()
-
 	jsonResponse([status: "received"])	
 }
 
@@ -920,13 +993,86 @@ def setCommStatus(commDisabled = false)
     
 	Purpose: Pushes the current mode out to remote hubs.
 
-	URL Format: /modes/modeName
+	URL Format: /modes/set/modeName
 
 	Notes: Called by system start event to make sure the correct mode is pushed to all remote hubs.
 */
 def pushCurrentMode()
 {
-	sendGetCommand("/modes/${URLEncoder.encode(location.mode)}")
+	sendGetCommand("/modes/set/${URLEncoder.encode(location.mode)}")
+}
+
+
+/*
+	getAllRemoteModes
+    
+	Purpose: Queries the remote hub for all configured modes.
+
+	URL Format: GET /modes/get
+
+	Notes: Called by parent app.
+*/
+def getAllRemoteModes()
+{
+	return httpGetWithReturn("/modes/get")
+}
+
+
+/*
+	getAllModes
+    
+	Purpose: Returns a map of all configured modes on the server hub.
+
+	URL Format: GET /modes/get
+
+	Notes: Called from HTTP request on the remote hub.
+*/
+def getAllModes()
+{
+	jsonResponse(modes: location.modes, active: location.mode)
+}
+
+
+/*
+	getAllDevices
+    
+	Purpose: Queries the remote hub for all configured modes.
+
+	URL Format: GET /devices/get
+
+	Notes: Called by remote client.
+*/
+def getAllDevices()
+{
+	def response = []
+	NATIVE_DEVICES.each
+	{
+	  groupname, device ->
+		def devices = []
+
+		settings."${device.selector}".each
+		{
+			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname), commands: getCommandMap(it)]
+		}
+		if (devices.size()) response << [deviceclass: groupname, devices: devices]
+	}
+
+	jsonResponse(response)
+}
+
+
+/*
+	getAllVersions
+    
+	Purpose: Queries the remote hub for all app and driver versions.
+
+	URL Format: GET /system/versions/get
+
+	Notes: Called by parent app.
+*/
+def getAllVersions()
+{
+	return httpGetWithReturn("/system/versions/get")
 }
 
 
@@ -999,7 +1145,7 @@ def updated()
 def initialize()
 {
 	log.info "${app.name} Initialized"
-	
+
 	saveDevicesToClient()
 	subscribeLocalEvents()
 	if (pushModes) subscribe(location, "mode", realtimeModeChangeHandler)
@@ -1032,7 +1178,7 @@ def initialize()
 */
 def jsonResponse(respMap)
 {
-	render contentType: 'application/json', data: new groovy.json.JsonBuilder(respMap).toString()
+	render contentType: 'application/json', data: JsonOutput.toJson(respMap)
 }
 
 
@@ -1045,12 +1191,6 @@ def jsonResponse(respMap)
 */
 def devicePage()
 {
-	def sensorsPageCount = genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size()
-	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
-	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: powerMeters?.size()
-	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
-
 	def totalNativeDevices = 0
 	def requiredDrivers = ""
 	NATIVE_DEVICES.each
@@ -1074,11 +1214,11 @@ def devicePage()
 	{
 		section("<b> Select Devices to Link to Remote Hub ${clientName}</b>  (${totalDevices} connected)")
 		{ 
-			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: sensorsPageCount ? "complete" : null
-			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: shackratsDriverPageCount ? "complete" : null
-			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: switchDimmerBulbPageCount ? "complete" : null
-			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: safetySecurityPageCount ? "complete" : null
-			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: otherDevicePageCount ? "complete" : null
+			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: devicePageStatus.sensorsPage ? "complete" : null
+			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: devicePageStatus.shackratsDriverPage ? "complete" : null
+			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switchDimmerBulbPage ? "complete" : null
+			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safetySecurityPage ? "complete" : null
+			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: devicePageStatus.otherDevicePage ? "complete" : null
 			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
 		}
 		if (requiredDrivers?.size())
@@ -1311,5 +1451,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 2, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
