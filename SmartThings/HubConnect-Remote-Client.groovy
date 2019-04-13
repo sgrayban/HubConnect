@@ -176,9 +176,9 @@ def getDevice(params)
 	{
 		state.customDrivers?.each
 		{
-	 	  groupname, driver ->
+	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -1288,5 +1288,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 1]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

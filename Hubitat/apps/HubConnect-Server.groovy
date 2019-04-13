@@ -286,11 +286,11 @@ def saveCustomDriverPage(params)
 		}
 		
 		def selector = ATTRIBUTE_TO_SELECTOR.find{it.key == attr_1}
-
+		def randString = Long.toUnsignedString(new Random().nextLong(), 16).toUpperCase()
 		state.customDrivers[deviceClass] = 
 		[
 			driver: newDev_DriverName,
-			selector: selector.value,
+			selector: state.customDrivers[deviceClass]?.selector ?: "${randString}_${selector.value}",
 			attr: attr
 		]
 
@@ -720,5 +720,5 @@ def aboutPage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

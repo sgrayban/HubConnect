@@ -175,9 +175,9 @@ def getDevice(params)
 	{
 		state.customDrivers?.each
 		{
-	 	  groupname, driver ->
+	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -1307,5 +1307,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
