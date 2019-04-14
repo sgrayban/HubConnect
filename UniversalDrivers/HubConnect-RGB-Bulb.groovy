@@ -122,7 +122,7 @@ def setColor(value)
 	if (value.hue == null || value.saturation == null) return
 
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [hue: value.hue, saturation: value.saturation, level: value?.level])
+	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [[hue: value.hue, saturation: value.saturation, level: value?.level]])
 }
 
 
