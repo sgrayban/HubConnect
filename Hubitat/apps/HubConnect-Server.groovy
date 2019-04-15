@@ -96,6 +96,15 @@ def mainPage()
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
 		section("<h2>${app.label}</h2>"){}
+		if (state?.serverInstalled == null || state.serverInstalled == false)
+		{
+			section("<b style=\"color:green\">HubConnect Installed!</b>")
+			{
+				paragraph "Click <i>Done</i> to save then return to the HubConnect app to connect a remote hub."
+			}
+			return
+		}
+		
 		section
 		{
 			app(name: "hubClients", appName: "HubConnect Server Instance", namespace: "shackrat", title: "Connect a Hub...", multiple: true)
@@ -344,6 +353,7 @@ def installed()
 	log.info "${app.name} Installed"
 
 	state.customDrivers = [:]
+	state.serverInstalled = true
 
 	initialize()
 }
@@ -363,6 +373,11 @@ def updated()
 	if (state?.customDrivers == null)
 	{
 		state.customDrivers = [:]
+	}
+
+	if (state?.serverInstalled == null)
+	{
+		state.serverInstalled = true
 	}
 	
 	unsubscribe()
@@ -720,5 +735,5 @@ def aboutPage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 2]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
