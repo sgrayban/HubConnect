@@ -414,7 +414,7 @@ def off()
 def setCoolingSetpoint(temperature)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setCoolingSetpoint", [temperature.toString()])
+	parent.sendDeviceEvent(device.deviceNetworkId, "setCoolingSetpoint", [temperature])
 }
 
 
@@ -426,7 +426,7 @@ def setCoolingSetpoint(temperature)
 def setHeatingSetpoint(temperature)
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setHeatingSetpoint", [temperature.toString()])
+	parent.sendDeviceEvent(device.deviceNetworkId, "setHeatingSetpoint", [temperature])
 }
 
 
@@ -476,4 +476,4 @@ def sync()
 	// The server will respond with updated status and details
 	parent.syncDevice(device.deviceNetworkId, "thermostat")
 }
-def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 0]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 1]}
