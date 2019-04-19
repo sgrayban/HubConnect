@@ -386,6 +386,23 @@ def getSupportedAttributes(deviceClass)
 
 
 /*
+	realtimeModeChangeHandler
+    
+	URL Format: GET /modes/set/modeName
+
+	Purpose: Event handler for mode change events on the controller hub (this one).
+*/
+def realtimeModeChangeHandler(evt)
+{
+	if (!pushModes) return
+
+	def newMode = evt.value
+	if (enableDebug) log.debug "Sending mode change event to server: ${newMode}"
+	sendGetCommand("/modes/set/${URLEncoder.encode(newMode)}")
+}
+
+
+/*
 	saveDevicesToServer
     
 	Purpose: Sends all of the devices selected (& current attribute values) from this hub to the controller hub.
@@ -825,10 +842,12 @@ def initialize()
 	unschedule()
 
    	state.commDisabled = false
+    
 	if (isConnected)
 	{
 		saveDevicesToServer()
 		subscribeLocalEvents()
+		if (pushModes) subscribe(location, "mode", realtimeModeChangeHandler)
 		runEvery1Minute("appHealth")
 	}
     
@@ -862,6 +881,7 @@ def mainPage()
 		{
 			href "connectPage", title: "Connect to Server Hub...", description: "", state: isConnected ? "complete" : null
 			if (isConnected) href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+			input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
 		}
 		section("-= Debug Menu =-")
 		{
@@ -1288,5 +1308,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 1]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 2]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
