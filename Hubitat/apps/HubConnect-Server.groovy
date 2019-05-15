@@ -93,6 +93,8 @@ preferences
 */
 def mainPage()
 {
+	if (state.serverInstalled && state.installedVersion != appVersion) return upgradePage()
+
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
 		section("<h2>${app.label}</h2>"){}
@@ -125,6 +127,23 @@ def mainPage()
 		{
 			href "aboutPage", title: "Help Support HubConnect!", description: "HubConnect is provided free of charge for the benefit the Hubitat community.  If you find HubConnect to be a valuable tool, please help support the project."
 			paragraph "<span style=\"font-size:.8em\">Server Container v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
+		}
+	}
+}
+
+
+/*
+	upgradePage
+    
+	Purpose: Displays the splash page to force users to initialize the app after an upgrade.
+*/
+def upgradePage()
+{
+	dynamicPage(name: "upgradePage", uninstall: false, install: true)
+	{
+		section("New Version Detected!")
+		{
+			paragraph "<b style=\"color:green\">HubConnect Server has detected an upgrade that has been installed...</b> <br /> Please click [Done] to complete the installation on the server and all remotes."
 		}
 	}
 }
@@ -354,6 +373,7 @@ def installed()
 
 	state.customDrivers = [:]
 	state.serverInstalled = true
+	state.installedVersion = appVersion
 
 	initialize()
 }
@@ -382,6 +402,20 @@ def updated()
 	
 	unsubscribe()
 	initialize()
+
+	// Upgrade the system if necessary
+	if (state.installedVersion != appVersion)
+	{
+		log.info "An upgrade has been detected...  Updating the HubConnect system..."
+		childApps.each
+		{
+		  child ->
+			log.info "Running updated() on ${child.label}..."
+			child.updated()
+		}
+	}
+
+	state.installedVersion = appVersion
 }
 
 
@@ -443,6 +477,42 @@ def pushSystemMode()
 	{
 	  child ->
 		child.pushCurrentMode()
+	}
+}
+
+
+/*
+	hsmSetState
+    
+	Purpose: Sets the HSM state for each child instance to <state>.
+
+	Notes: Calls realtimeHSMChangeHandler with a "fake" event.
+*/
+def setHSMState(hsmState, appId)
+{
+	log.debug "Setting HSM state across all hubs to ${hsmState}..."
+	childApps.each
+	{
+	  child ->
+		if (child.id != appId) child.realtimeHSMChangeHandler([value: hsmState, data: 0])
+	}
+}
+
+
+/*
+	hsmSendAlert
+    
+	Purpose: Pushes an HSM alert to all remotes.
+
+	Notes: Calls pushCurrentMode() in each server instance.
+*/
+def hsmSendAlert(hsmAlertText, appId)
+{
+	log.debug "Sending HSM alert state across all hubs to ${hsmState}..."
+	childApps.each
+	{
+	  child ->
+		if (child.id != appId) child.realtimeHSMChangeHandler([value: hsmState, data: 0])
 	}
 }
 
@@ -563,6 +633,9 @@ def modeReportPage()
 */
 def getVersionReportData()
 {
+	// Get the latest available versions
+	versionCheck()
+
 	// Server hub apps & drivers
 	def serverDrivers = [:]
 	childApps.each
@@ -586,6 +659,17 @@ def getVersionReportData()
 		allHubs[child.id] = [name: child.label, report: child.getAllVersions()]
 	}
 	state.versionReport = allHubs
+	
+	atomicState.versionReportStatus = "Checking for latest versions..."
+
+	// This is to allow another 5 seconds for the version check to complete...  It should never be needed!
+	def lp = 0
+	while (atomicState.currentVersions == null)
+	{
+		pauseExecution(1000)
+		if (++lp > 5) break
+	}
+	
 	atomicState.versionReportStatus = "Rendering..."
 }
 
@@ -636,15 +720,20 @@ def versionReportPage()
 					paragraph "Hub is not reachable or remote client is not reporting version information."
 					return
 				}
-				def html = "<table style=\"width:100%\"><thead><tr><th style=\"width:60%\">Component</th><th style=\"width:10%\">Type</th><th style=\"width:16%\">Platform</th><th style=\"width:14%\">Installed</th></tr></thead><tbody>"
+				def html = "<table style=\"width:100%\"><thead><tr><th style=\"width:46%\">Component</th><th style=\"width:10%\">Type</th><th style=\"width:16%\">Platform</th><th style=\"width:14%\">Installed</th><th style=\"width:14%\">Latest</th></tr></thead><tbody>"
 				v.report?.apps?.sort()?.each
 				{
-					html += "<tr><td>${it?.appName}</td><td>app</td><td>${it?.appVersion?.platform}</td><td>${it?.appVersion?.major}.${it?.appVersion?.minor}.${it?.appVersion?.build}</td></tr>"
+					def latest = (it?.appVersion?.platform != null && state?.currentVersions != null) ? atomicState.currentVersions?.(it.appVersion.platform.toLowerCase())?.app?.(it.appName) : null
+					def latestVersion = latest ?  "<span style=\"color:${isNewer(latest, it?.appVersion) ? "red" : "green"}\">${latest.major}.${latest.minor}.${latest.build}</span>" : ""
+					html += "<tr><td>${it?.appName}</td><td>app</td><td>${it?.appVersion?.platform}</td><td>${it?.appVersion?.major}.${it?.appVersion?.minor}.${it?.appVersion?.build}</td><td>${latestVersion}</td></tr>"
 				}
 				v.report?.drivers?.sort()?.each
 				{
 			 	  dk, dv ->
-					html += "<tr><td>${dk}</td><td>driver</td><td>${dv?.platform}</td><td>${dv?.major}.${dv?.minor}.${dv?.build}</td></tr>"
+	
+					def latest = (dv?.platform != null && state?.currentVersions != null) ? atomicState.currentVersions?.(dv.platform.toLowerCase())?.driver?.(dk?.toString()) : null
+					def latestVersion = latest ?  "<span style=\"color:${isNewer(latest, dv) ? "red" : "green"}\">${latest.major}.${latest.minor}.${latest.build}</span>" : ""
+					html += "<tr><td>${dk}</td><td>driver</td><td>${dv?.platform}</td><td>${dv?.major}.${dv?.minor}.${dv?.build}</td><td>${latestVersion}</td></tr>"
 				}
 				paragraph "${html}</tbody></table>"
 			}
@@ -652,6 +741,7 @@ def versionReportPage()
 		section()
 		{
 			paragraph "Note: The version report can only report on drivers that are currently in use by HubConnect devices."
+			href "versionReportLoadingPage", title: "Refresh", description: "Refresh this report with the latest data...  (May be slow to load)"
 			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
 		}
@@ -735,5 +825,41 @@ def aboutPage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 2]}
+
+/*
+	versionCheck
+    
+	Purpose: Fetches the latest available module versions.
+*/
+def versionCheck()
+{
+	atomicState.currentVersions = null
+	def token = URLEncoder.encode(location.hubs[0].toString())
+
+	def requestParams =
+	[
+		uri: "http://irisusers.com/hubitat/hubconnect/latest.php?s=${token}",
+		requestContentType: 'application/json',
+		contentType: 'application/json'
+	]
+    
+	asynchttpGet("versionCheckResponse", requestParams)
+}
+
+
+/*
+	versionCheckResponse
+    
+	Purpose: Stores the retreived version information to state.
+*/
+def versionCheckResponse(response, data)
+{
+	if (response?.status == 200 && response.json.versions != null)
+	{
+		atomicState.currentVersions = response.json.versions
+	}
+}
+
+def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

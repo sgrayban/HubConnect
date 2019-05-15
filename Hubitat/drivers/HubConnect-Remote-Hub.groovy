@@ -27,6 +27,8 @@ metadata
 		attribute "eventSocketStatus", "string"
 		attribute "connectionType", "string"
 		attribute "version", "string"
+		attribute "hsmStatus", "enum", ["armedAway", "armingAway",  "armedHome", "armingHome", "armedNight", "armingNight", "disarmed", "allDisarmed"]
+		attribute "modeStatus", "string"
 		
 		command "pushCurrentMode"
 	}
@@ -164,9 +166,9 @@ def parse(String description)
 		log.error "Failed to parse event data: ${errorException}"
     }
 
-	if (eventData?.source == "DEVICE")
+	if (eventData?.source.length() == 6) // "DEVICE"
 	{
-		parent.wsSendEvent(eventData)
+		parent.wsSendEvent((Map) eventData)
 	}
 }
 
@@ -211,4 +213,4 @@ def pushCurrentMode()
 {
 	parent.pushCurrentMode()
 }
-def getDriverVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 0]}
+def getDriverVersion() {[platform: "Hubitat", major: 1, minor:4, build: 0]}

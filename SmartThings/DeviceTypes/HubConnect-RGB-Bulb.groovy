@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect RGB Bulb", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-RGB-Bulb.groovy")
+	definition(name: "HubConnect RGB Bulb", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.r.colour.chroma", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-RGB-Bulb.groovy")
 	{
 		capability "Switch"
 		capability "Switch Level"
@@ -30,7 +30,8 @@ metadata
 		command "sync"
 	}
 
-	tiles(scale: 2) {
+	tiles(scale: 2)
+	{
 	    multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true)
 	    {
 	        tileAttribute ("device.switch", key: "PRIMARY_CONTROL") 
@@ -52,10 +53,6 @@ metadata
 	    controlTile("colorTempSliderControl", "device.colorTemperature", "slider", width: 2, height: 2, inactiveLabel: false, range:"(2700..6500)") 
 	    {
 	        state "colorTemperature", action:"color temperature.setColorTemperature"
-	    }
-	    valueTile("colorTemp", "device.colorTemperature", inactiveLabel: false, decoration: "flat", width: 2, height: 2) 
-	    {
-	        state "colorTemperature", label: '${currentValue} K'
 	    }
 	    standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
 	    {
@@ -163,7 +160,6 @@ def setColor(value)
 	if (value.hue == null || value.saturation == null) return
 
 	// The server will update status
-//	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [hue: value.hue, saturation: value.saturation, level: value?.level])
 	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [[hue: value.hue, saturation: value.saturation, level: value?.level]])
 }
 
@@ -227,4 +223,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "rgbbulb")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 0]}

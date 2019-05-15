@@ -61,6 +61,7 @@ preferences
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
 	"domemotion":		[driver: "Dome Motion Sensor", selector: "domeMotions", attr: ["motion", "temperature", "illuminance", "battery"]],
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
+	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", attr: ["speed"]],
 	"garagedoor":		[driver: "Garage Door", selector: "garageDoors", attr: ["door", "contact"]],
 	"irissmartplug":	[driver: "Iris Smart Plug", selector: "smartPlugs", attr: ["switch", "power", "voltage", "ACFrequency"]],
 	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", attr: ["motion", "temperature", "humidity", "battery"]],
@@ -129,6 +130,18 @@ mappings
 	{
 		action: [GET: "clientModeChangeEvent"]
 	}
+    path("/hsm/get")
+	{
+		action: [GET: "getAllHSMStates"]
+	}
+    path("/hsm/set/:name")
+	{
+		action: [GET: "hsmReceiveEvent"]
+	}
+    path("/hsm/alert/:text")
+	{
+		action: [GET: "hsmReceiveAlert"]
+	}		
 }
 
 
@@ -146,7 +159,7 @@ def syncDevice(deviceId, deviceType)
 	def dniParts = deviceId.split(":")
 
 	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${deviceId}") }
-	if (childDevice)
+	if (childDevice != null)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
 
@@ -204,13 +217,18 @@ def deviceEvent()
 	def data = event?.data ?: ""
 	def unit = event?.unit ?: ""
 
-	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${params.deviceId}") }
-	if (childDevice)
+	// We can do this faster if we don't need info on the device
+	for (id in state.deviceIdList)
 	{
-		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${unit}]"
-		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
+		if (id.toString() == params.deviceId)
+		{
+			sendEvent("${clientIP}:${params.deviceId}", (Map) [name: event.name, value: event.value, unit: unit, descriptionText: "${event?.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: true, data: data])
+			if (enableDebug) log.info "Received event from ${clientName}/${event.displayName}: [${event.name}, ${event.value} ${unit}]"
+			return
+		}
 	}
-	else if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
+
+	if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
 }
 
 
@@ -224,11 +242,15 @@ def deviceEvent()
 */
 def wsSendEvent(event)
 {
-	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${event.deviceId}") }
-	if (childDevice)
+	// We can do this faster if we don't need info on the device, so defer that for logging
+	for (id in state.deviceIdList)
 	{
-		if (enableDebug) log.info "Received event from ${clientName}/${childDevice.label}: [${event.name}, ${event.value} ${event.unit}]"
-		childDevice.sendEvent([name: event.name, value: event.value, unit: event.unit, descriptionText: event.descriptionText, isStateChange: true])
+		if ((int) id == (int) event.deviceId)
+		{
+			sendEvent("${clientIP}:${event.deviceId}", (Map) [name: event.name, value: event.value, unit: event.unit, descriptionText: event.descriptionText, isStateChange: true])
+			if (enableDebug) log.info "Received event from ${clientName}/${event.displayName}: [${event.name}, ${event.value} ${event.unit}]"
+			break
+		}
 	}
 }
 
@@ -243,10 +265,59 @@ def wsSendEvent(event)
 def realtimeModeChangeHandler(evt)
 {
 	if (!pushModes) return
-	def newMode = evt.value
 
-	if (enableDebug) log.debug "Sending mode change event to ${clientName}: ${newMode}"
-	sendGetCommand("/modes/set/${URLEncoder.encode(newMode)}")
+	if (enableDebug) log.debug "Sending mode change event to ${clientName}: ${evt.value}"
+	sendGetCommand("/modes/set/${URLEncoder.encode(evt.value)}")
+
+	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.sendEvent(name: "modeStatus", value: evt.value)
+}
+
+
+/*
+	realtimeHSMChangeHandler
+    
+	URL Format: GET /hsm/set/hsmStateName
+
+	Purpose: Event handler for HSM state change events on the controller hub (this one).
+*/
+def realtimeHSMChangeHandler(evt)
+{
+	if (!pushHSM) return
+	def newState = evt.value
+
+	if (evt?.data?.toInteger() != app.id)
+	{
+		if (enableDebug) log.debug "Sending HSM state change event to ${clientName}: ${newState}"
+		sendGetCommand("/hsm/set/${URLEncoder.encode(newState)}")
+	}
+	else if (enableDebug) log.info "Filtering HSM state change event received from ${clientName}."
+}
+
+
+/*
+	realtimeHSMStatusHandler
+
+	Purpose: Updates virtual hub device with correct HSM status.
+*/
+def realtimeHSMStatusHandler(evt)
+{
+	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.sendEvent(name: "hsmStatus", value: evt.value)
+}
+
+
+/*
+	hsmSendAlert
+    
+	URL Format: GET /hsm/set/hsmStateName
+
+	Purpose: Event handler for HSM state change events on the controller hub (this one).
+*/
+def hsmSendAlert(hsmAlertText)
+{
+	if (!pushHSM) return
+
+	if (enableDebug) log.debug "Sending HSM alert change event to ${clientName}: ${hsmAlertText}"
+	sendGetCommand("/hsm/alert/${URLEncoder.encode(hsmAlertText)}")
 }
 
 
@@ -278,6 +349,14 @@ def saveDevices()
 		request.JSON.devices.each { createLinkedChildDevice(it, "${state.customDrivers[request.JSON.deviceclass].driver}") }		
 	}
 
+	def idList = []
+	childDevices.each
+	{
+		def parts = it.deviceNetworkId.split(":")
+		if (parts.size() > 1) idList << (localConnectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
+	}
+	state.deviceIdList = idList
+
 	jsonResponse([status: "complete"])
 }
 
@@ -292,7 +371,7 @@ def saveDevices()
 private createLinkedChildDevice(dev, driverType)
 {
 	def childDevice = getChildDevices()?.find{it.deviceNetworkId == "${clientIP}:${dev.id}"}
-	if (childDevice)
+	if (childDevice != null)
 	{
 		// Device exists
 		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
@@ -313,7 +392,7 @@ private createLinkedChildDevice(dev, driverType)
 	}
 
 	// Set the value of the primary attributes
-	if (childDevice)
+	if (childDevice != null)
 	{
 		dev.attr.each
 		{
@@ -334,7 +413,7 @@ private createLinkedChildDevice(dev, driverType)
 private createHubChildDevice()
 {
 	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
-	if (hubDevice)
+	if (hubDevice != null)
 	{
 		// Hub exists
 		log.error "Hub device exists... Skipping creation.."
@@ -355,7 +434,7 @@ private createHubChildDevice()
 		}
 		
 		// Set the value of the primary attributes
-		if (hubDevice) sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
+		if (hubDevice != null) sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
 	}
 
 	hubDevice
@@ -374,7 +453,7 @@ def syncRemoteDevice()
 	log.info "Received device update request from client: [${params.deviceId}, type ${params.type}]"
 	
 	def device = getDevice(params)
-	if (device)
+	if (device != null)
 	{
 		def currentAttributes = getAttributeMap(device, params.type)	
 		def label = device.label ?: device.name
@@ -428,7 +507,7 @@ def remoteDeviceCommand()
 
 	// Get the device
 	def device = getDevice(params)
-	if (!device)
+	if (device == null)
 	{
 		log.error "Could not locate a device with an id of ${device.deviceId}"
 		return jsonResponse([status: "error"])
@@ -439,7 +518,7 @@ def remoteDeviceCommand()
 	// Make sure the physical device supports the command
 	if (!device.hasCommand(params.deviceCommand))
 	{
-		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
+		log.warn "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
 
@@ -505,6 +584,55 @@ def clientModeChangeEvent()
 
 
 /*
+	hsmReceiveEvent
+    
+	Purpose: Event handler for server (controller) HSM status change events.
+
+	URL Format: (GET) /hsm/set/:name
+
+	Notes: Called from HTTP request from remote hub.
+*/
+def hsmReceiveEvent()
+{
+	if (!receiveHSM) return
+    def hsmState = params?.name ? URLDecoder.decode(params?.name) : ""
+
+    if (["armAway", "armHome", "armNight", "disarm", "armRules", "disarmRules", "disarmAll", "armAll", "cancelAlerts"].find{it == hsmState})
+	{
+		if (enableDebug) log.debug "Received HSM event from server: ${hsmState}"
+
+		if (location.hsmStatus != null || location.hsmStatus != "") sendLocationEvent(name: "hsmSetArm", value: hsmState, data: app.id)
+		else parent.hsmSetState(hsmState, app.id)
+
+		jsonResponse([status: "complete"])		
+	}
+	else
+	{
+		log.error "Received HSM event from server: ${hsmState} does not exist!"
+		jsonResponse([status: "error"])	
+    }
+}
+
+
+/*
+	hsmReceiveAlert
+    
+	Purpose: Receives HSM alert events from remote HSM instances.
+
+	URL Format: (GET) /hsm/alert/:text
+
+	Notes: Called from HTTP request from remote hub.
+*/
+def hsmReceiveAlert()
+{
+	if (!receiveHSM) return
+    def hsmAlertText = params?.text ? URLDecoder.decode(params?.text) : ""
+	
+	parent.hsmSendAlert(hsmAlertText, appId)
+}
+
+
+/*
 	subscribeLocalEvents
     
 	Purpose: Subscribes to all device events for all attribute returned by getSupportedAttributes()
@@ -556,7 +684,7 @@ def realtimeEventHandler(evt)
 		name:			evt.name,
 		value:			evt.value,
 		unit:			remoteType != "smartthings" ? evt.unit : evt.unit?.replace("°", "")?.replace("%", ""),
-		isStateChange:	evt.isStateChange,
+		displayName:	evt.device.label ?: evt.device.name,
 		data:			evt.data
 	]
 
@@ -784,7 +912,7 @@ def getDevicePageStatus()
 	[
 		sensorsPage: genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: genericShocks?.size(),
 		shackratsDriverPage: smartPlugs?.size() ?: zwaveRepeaters?.size(),
-		switchDimmerBulbPage: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size(),
+		switchDimmerBulbPage: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size() ?: fanControl?.size(),
 		safetySecurityPage: genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size(),
 		otherDevicePage: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
 	]
@@ -805,6 +933,8 @@ def mainPage()
 	{
 		app.updateLabel(clientName)
 	}
+	
+	if (state.clientURI != null && state.installedVersion != appVersion) return upgradePage()
 	
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
@@ -827,6 +957,13 @@ def mainPage()
 				paragraph "Synchronize mode changes from this remote (client) hub to the Server hub.."
 				input "receiveModes", "bool", title: "Receive mode changes from Client Hub?", description: "", defaultValue: false
 		}
+		section("-= <b>Hubitat Safety Monitor (HSM) Menu</b> =-")
+		{
+				paragraph "Synchronize HSM status on the server to this remote (client) hub."
+				input "pushHSM", "bool", title: "Send HSM changes to Client Hub?", defaultValue: false
+				paragraph "Synchronize HSM status from this remote (client) hub to the Server hub.."
+				input "receiveHSM", "bool", title: "Receive HSM changes from Client Hub?", description: "", defaultValue: false
+		}
 		section("-= <b>Debug Menu</b> =-")
 		{
 			input "enableDebug", "bool", title: "Enable debug output?", required: false, defaultValue: false
@@ -834,6 +971,23 @@ def mainPage()
 		section("-= <b>HubConnect v${appVersion.major}.${appVersion.minor}</b> =-")
 		{
 			paragraph "<span style=\"font-size:.8em\">Server Instance v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
+		}
+	}
+}
+
+
+/*
+	upgradePage
+    
+	Purpose: Displays the splash page to force users to initialize the app after an upgrade.
+*/
+def upgradePage()
+{
+	dynamicPage(name: "upgradePage", uninstall: false, install: true)
+	{
+		section("New Version Detected!")
+		{
+			paragraph "<b style=\"color:green\">This HubConnect Server Instance has an upgrade that has been installed...</b> <br /> Please click [Done] to complete the installation."
 		}
 	}
 }
@@ -1034,6 +1188,21 @@ def getAllModes()
 
 
 /*
+	getAllHSMStates
+    
+	Purpose: Returns a map of all HSM states and current state on the server hub.
+
+	URL Format: GET /modes/get
+
+	Notes: Called from HTTP request on the remote hub.
+*/
+def getAllHSMStates()
+{
+	jsonResponse(hsmSetArm: ["armAway", "armHome", "armNight", "disarm", "armRules", "disarmRules", "disarmAll", "armAll", "cancelAlerts"], hsmStatus: location.hsmStatus)
+}
+
+
+/*
 	getAllDevices
     
 	Purpose: Queries the remote hub for all configured modes.
@@ -1111,6 +1280,8 @@ def installed()
 		state.lastCheckIn = 0
 		state.connectStatus = "error"
 	}
+
+	state.installedVersion = appVersion
 }
 
 
@@ -1132,6 +1303,10 @@ def updated()
 
 	unsubscribe()
 	initialize()
+
+	sendGetCommand("/system/update")
+
+	state.installedVersion = appVersion
 }
 
 
@@ -1149,11 +1324,25 @@ def initialize()
 	saveDevicesToClient()
 	subscribeLocalEvents()
 	if (pushModes) subscribe(location, "mode", realtimeModeChangeHandler)
+	if (pushHSM)
+	{
+		subscribe(location, "hsmSetArm", realtimeHSMChangeHandler)
+		subscribe(location, "hsmStatus", realtimeHSMStatusHandler)
+	}
 	
 	state.lastCheckIn = now()
 	state.connectStatus = "online"
 
 	state.commDisabled = false
+	
+	// Build a lookup list
+	def idList = []
+	childDevices.each
+	{
+		def parts = it.deviceNetworkId.split(":")
+		if (parts.size() > 1) idList << (localConnectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
+	}
+	state.deviceIdList = idList
 
 	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
 	if (hubDevice)
@@ -1216,7 +1405,7 @@ def devicePage()
 		{ 
 			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: devicePageStatus.sensorsPage ? "complete" : null
 			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: devicePageStatus.shackratsDriverPage ? "complete" : null
-			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switchDimmerBulbPage ? "complete" : null
+			href "switchDimmerBulbPage", title: "Switches, Dimmers, & Fans", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switchDimmerBulbPage ? "complete" : null
 			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safetySecurityPage ? "complete" : null
 			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: devicePageStatus.otherDevicePage ? "complete" : null
 			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
@@ -1336,6 +1525,10 @@ def switchDimmerBulbPage()
 			input "powerMeters", "capability.powerMeter", title: "Power Meter Devices (power, voltage):", required: false, multiple: true, defaultValue: null
 			input "pm_EnableVolts", "bool", title: "Enable voltage reporting?", required: false, defaultValue: true
 		}
+		section("<b>-= Select Fan Devices (${fanControl?.size() ?: "0"} connected) =-</b>")
+		{ 
+			input "fanControl", "capability.fanControl", title: "Fan Controller Devices (speed):", required: false, multiple: true, defaultValue: null
+		}
 	}
 }
 
@@ -1451,5 +1644,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 3, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

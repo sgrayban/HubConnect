@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Garage Door", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.d.garagedoor", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Garage-Door.groovy")
+	definition(name: "HubConnect Garage Door", namespace: "shackrat", author: "Steve White", ocfDeviceType: "x.com.st.garagedoorcontrol", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Garage-Door.groovy")
 	{
 		capability "Sensor"
 		capability "Actuator"
@@ -35,11 +35,11 @@ metadata
 		{
 			tileAttribute ("device.door", key: "PRIMARY_CONTROL")
 			{
-		        	attributeState "open", label:'${name}', action:"device.close", icon:"st.doors.garage.garage-open", backgroundColor:"#FF0000", nextState:"closing"
-		        	attributeState "closed", label:'${name}', action:"device.open", icon:"st.doors.garage.garage-closed", backgroundColor:"#ffffff", nextState:"opening"
-		        	attributeState "opening", label:'${name}', action:"device.close", icon:"st.doors.garage.garage-opening", backgroundColor:"#00A0DC", nextState:"open"
-		        	attributeState "closing", label:'${name}', action:"device.open", icon:"st.doors.garage.garage-closing", backgroundColor:"#00A0DC", nextState:"closed"
-		        	attributeState "unknown", label:'${name}', action:"device.close", icon:"st.doors.garage.garage-open", backgroundColor:"#00A0DC"
+		        	attributeState "open", label:'${name}', action:"close", icon:"st.doors.garage.garage-open", backgroundColor:"#FF0000", nextState:"closing"
+		        	attributeState "closed", label:'${name}', action:"open", icon:"st.doors.garage.garage-closed", backgroundColor:"#ffffff", nextState:"opening"
+		        	attributeState "opening", label:'${name}', action:"close", icon:"st.doors.garage.garage-opening", backgroundColor:"#00A0DC", nextState:"open"
+		        	attributeState "closing", label:'${name}', action:"open", icon:"st.doors.garage.garage-closing", backgroundColor:"#00A0DC", nextState:"closed"
+		        	attributeState "unknown", label:'${name}', action:"close", icon:"st.doors.garage.garage-open", backgroundColor:"#00A0DC"
 			}
 		}
 		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 3, height: 2)
@@ -55,6 +55,7 @@ metadata
 		details(["garageDoor", "sync", "version"])
     }
 }
+
 
 
 /*
@@ -121,8 +122,10 @@ def open()
 def close()
 {
 	// The server will update open/close status
+//	parent.sendDeviceEvent(device.deviceNetworkId, "closed")
 	parent.sendDeviceEvent(device.deviceNetworkId, "close")
 }
+
 
 
 /*
@@ -148,4 +151,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "garagedoor")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 3, build: 0]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 0]}

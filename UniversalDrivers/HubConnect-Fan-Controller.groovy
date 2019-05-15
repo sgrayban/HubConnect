@@ -14,15 +14,13 @@
  *	under the License.
  *
  *
- */a
+ */
 metadata 
 {
-	definition(name: "HubConnect Garage Door", namespace: "shackrat", author: "Steve White", ocfDeviceType: "x.com.st.garagedoorcontrol", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Garage-Door.groovy")
+	definition(name: "HubConnect Fan Controller", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Fan-Controller.groovy")
 	{
-		capability "Sensor"
-		capability "Actuator"
-		capability "Garage Door Control"
-		capability "Contact Sensor"
+		capability "Fan Control"
+		capability "Refresh"
 
 		attribute "version", "string"
 
@@ -76,26 +74,14 @@ def parse(String description)
 
 
 /*
-	open
+	setSpeed
     
-	Opens the garage door.
+	Sets the fan speed to <value>.
 */
-def open()
+def setSpeed(value)
 {
-	// The server will update open/close status
-	parent.sendDeviceEvent(device.deviceNetworkId, "open")
-}
-
-
-/*
-	close
-    
-	Closes the garage door.
-*/
-def close()
-{
-	// The server will update open/close status
-	parent.sendDeviceEvent(device.deviceNetworkId, "close")
+	// The server will update status
+	parent.sendDeviceEvent(device.deviceNetworkId, "setSpeed", [value])
 }
 
 
@@ -119,7 +105,7 @@ def refresh()
 def sync()
 {
 	// The server will respond with updated status and details
-	parent.syncDevice(device.deviceNetworkId, "garagedoor")
+	parent.syncDevice(device.deviceNetworkId, "fancontrol")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
 def getDriverVersion() {[platform: "Universal", major: 1, minor: 4, build: 0]}

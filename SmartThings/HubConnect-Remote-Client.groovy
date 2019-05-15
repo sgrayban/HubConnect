@@ -48,6 +48,7 @@ preferences
 	page(name: "otherDevicePage")
 	page(name: "stCloudDevices")
 	page(name: "customDevicePage")
+    page(name: "shmConfigPage")
 }
 
 
@@ -62,6 +63,7 @@ preferences
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
 	"domemotion":		[driver: "Dome Motion Sensor", selector: "domeMotions", attr: ["motion", "temperature", "illuminance", "battery"]],
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
+	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", attr: ["speed"]],
 	"garagedoor":		[driver: "Garage Door", selector: "garageDoors", attr: ["door", "contact"]],
 	"irissmartplug":	[driver: "Iris Smart Plug", selector: "smartPlugs", attr: ["switch", "power", "voltage", "ACFrequency"]],
 	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", attr: ["motion", "temperature", "humidity", "battery"]],
@@ -107,6 +109,10 @@ mappings
 	{
 		action: [GET: "serverModeChangeEvent"]
 	}
+    path("/hsm/set/:name")
+	{
+		action: [GET: "hsmReceiveEvent"]
+	}
 	path("/system/setCommStatus/:status")
 	{
 		action: [GET: "setCommStatus"]
@@ -118,6 +124,10 @@ mappings
     path("/system/versions/get")
 	{
 		action: [GET: "getVersions"]
+	}
+    path("/system/update")
+	{
+		action: [GET: "remoteUpdate"]
 	}
 
 	// Server mappings
@@ -276,6 +286,51 @@ def serverModeChangeEvent()
 
 
 /*
+	hsmReceiveEvent
+    
+	Purpose: Event handler for server (controller) HSM status change events.
+
+	URL Format: (GET) /hsm/set/:name
+
+	Notes: Called from HTTP request from server hub.
+			SMH Modes: away, stay, off
+*/
+def hsmReceiveEvent()
+{
+    def hsmState = params?.name ? URLDecoder.decode(params?.name) : ""
+    
+    def hsmToSHM =
+	[
+		armAway:	settings?.armAway,
+		armHome:	settings?.armHome,
+		armNight:	settings?.armNight,
+		disarm:		"off"
+	]
+
+    if (hsmToSHM.find{it.key == hsmState})
+	{
+		def shmState = hsmToSHM?."${hsmState}"
+		if (shmState != null)
+		{
+			if (enableDebug) log.debug "Received HSM/SHM event from server: ${hsmState}, setting SHM state to ${shmState}"
+			sendLocationEvent(name: "alarmSystemStatus", value: shmState)
+			jsonResponse([status: "complete"])	
+		}
+		else
+		{
+			if (enableDebug) log.debug "HSM/SHM event error ${hsmState} SHM has not been configured for this alarm state."
+			jsonResponse([status: "error"])
+		}
+	}
+	else
+	{
+		log.error "Received HSM event from server: ${hsmState} does not exist!"
+		jsonResponse([status: "error"])	
+    }
+}
+
+
+/*
 	subscribeLocalEvents
     
 	Purpose: Subscribes to all device events for all attribute returned by getSupportedAttributes()
@@ -339,7 +394,7 @@ def realtimeEventHandler(evt)
 		name:			evt.name,
 		value:			evt.value,
 		unit:			evt.unit,
-		isStateChange:	evt.isStateChange,
+		displayName:	evt.device.label ?: evt.device.name,
 		data:			evt.data
 	]
 	
@@ -399,6 +454,36 @@ def realtimeModeChangeHandler(evt)
 	def newMode = evt.value
 	if (enableDebug) log.debug "Sending mode change event to server: ${newMode}"
 	sendGetCommand("/modes/set/${URLEncoder.encode(newMode)}")
+}
+
+
+/*
+	realtimeHSMChangeHandler
+    
+	URL Format: GET /hsm/set/hsmStateName
+
+	Purpose: Event handler for HSM state change events on the controller hub (this one).
+*/
+def realtimeHSMChangeHandler(evt)
+{
+	if (!pushHSM) return
+	def newState = evt.value
+
+    def hsmToSHM =
+	[
+		armAway:	settings?.armAway,
+		armHome:	settings?.armHome,
+		armNight:	settings?.armNight,
+		disarm:		"off"
+	]
+
+	def hsmState = hsmToSHM.find{it.value == newState}?.key
+    if (hsmState)
+	{
+		if (enableDebug) log.debug "Sending SHM to HSM state change event to server: ${newState} to ${hsmState}"
+		sendGetCommand("/hsm/set/${URLEncoder.encode(hsmState)}")
+	}
+    else if (enableDebug) log.debug "Error sending SHM to HSM state change to server: ${hsmState} is not mapped to ${newState}."
 }
 
 
@@ -827,6 +912,7 @@ def updated()
 	state.appInstalled = true
 	state.connected = isConnected
 }
+def remoteUpdate(params) { updated(); jsonResponse([status: "success"]) }
 
 
 /*
@@ -848,6 +934,7 @@ def initialize()
 		saveDevicesToServer()
 		subscribeLocalEvents()
 		if (pushModes) subscribe(location, "mode", realtimeModeChangeHandler)
+		if (pushHSM) subscribe(location, "alarmSystemStatus", realtimeHSMChangeHandler)
 		runEvery1Minute("appHealth")
 	}
     
@@ -880,8 +967,13 @@ def mainPage()
 		section("-= Main Menu=-")
 		{
 			href "connectPage", title: "Connect to Server Hub...", description: "", state: isConnected ? "complete" : null
-			if (isConnected) href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
-			input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
+			if (isConnected)
+			{
+				href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+				href "shmConfigPage", title: "Configure SHM to HSM mapping...", description: "", state: (armAway != null || armHome != null || armNight != null) ? "complete" : null
+				input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
+				input "pushHSM", "bool", title: "Send HSM changes to Server Hub?", description: "", defaultValue: false
+			}
 		}
 		section("-= Debug Menu =-")
 		{
@@ -1289,6 +1381,28 @@ def customDevicePage()
 
 
 /*
+	shmConfigPage
+    
+	Purpose: Configures HSM to SHM Mappings.
+
+	Notes: 	Not very exciting.
+*/
+def shmConfigPage()
+{
+	def shmStates = ["away", "stay", "off"]
+	dynamicPage(name: "shmConfigPage", uninstall: true, install: true)
+	{
+		section("-= SHM to HSM Mode Mapping =-")
+		{
+			input "armAway", "enum", title: "Set HSM to this mode when HSM changes to armAway", options: shmStates, description: "", defaultValue: "away"
+			input "armHome", "enum", title: "Set HSM to this mode when HSM changes to armHome", options: shmStates, description: "", defaultValue: "off"
+			input "armNight", "enum", title: "Set HSM to this mode when HSM changes to armNight", options: shmStates, description: "", defaultValue: "stay"
+		}
+	}
+}
+
+
+/*
 	getVersions
 
 	URL Format: (GET) /system/versions/get
@@ -1308,5 +1422,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 3, build: 2]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 0]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
