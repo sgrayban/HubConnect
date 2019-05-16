@@ -656,11 +656,10 @@ private createLinkedChildDevice(dev, driverType)
 
 	Notes: CALLED FROM CHILD DEVICE
 */
-def syncDevice(deviceId, deviceType)
+def syncDevice(deviceNetworkId, deviceType)
 {
-	def dniParts = deviceId.split(":")
-
-	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${deviceId}"}
+	def dniParts = deviceNetworkId.split(":")
+	def childDevice = childDevices?.find { it.deviceNetworkId == deviceNetworkId }
 	if (childDevice)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
@@ -1434,5 +1433,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

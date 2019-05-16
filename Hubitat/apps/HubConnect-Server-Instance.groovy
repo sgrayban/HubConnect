@@ -154,11 +154,10 @@ mappings
 
 	Notes: CALLED FROM CHILD DEVICE DRIVER
 */
-def syncDevice(deviceId, deviceType)
+def syncDevice(deviceNetworkId, deviceType)
 {
-	def dniParts = deviceId.split(":")
-
-	def childDevice = childDevices?.find { it.deviceNetworkId.endsWith(":${deviceId}") }
+	def dniParts = deviceNetworkId.split(":")
+	def childDevice = childDevices?.find { it.deviceNetworkId == deviceNetworkId }
 	if (childDevice != null)
 	{
 		if (enableDebug) log.debug "Requesting device sync from ${clientName}: ${childDevice.label}"
@@ -1644,5 +1643,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
