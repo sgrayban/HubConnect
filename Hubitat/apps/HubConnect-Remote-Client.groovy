@@ -82,6 +82,7 @@ preferences
 	"smoke":			[driver: "Smoke/CO Detector", selector: "genericSmokeCO", attr: ["smoke", "carbonMonoxide", "battery"]],
 	"switch":			[driver: "Switch", selector: "genericSwitches", attr: ["switch"]],
 	"thermostat":		[driver: "Thermostat", selector: "genericThermostats", attr: ["coolingSetpoint", "heatingSetpoint", "schedule", "supportedThermostatFanModes", "supportedThermostatModes", "temperature", "thermostatFanMode", "thermostatMode", "thermostatOperatingState", "thermostatSetpoint"]],
+	"valve":			[driver: "Valve", selector: "genericValves", attr: ["valve"]],
 	"windowshade":		[driver: "Window Shade", selector: "windowShades", attr: ["switch", "position", "windowShade"]],
 	"zwaverepeater":	[driver: "Iris Z-Wave Repeater", selector: "zwaveRepeaters", attr: ["status", "lastRefresh", "deviceMSR", "lastMsgRcvd"]]
 ]
@@ -303,7 +304,8 @@ def hsmReceiveEvent()
     if (["armAway", "armHome", "armNight", "disarm", "armRules", "disarmRules", "disarmAll", "armAll", "cancelAlerts"].find{it == hsmState})
 	{
 		if (enableDebug) log.debug "Received HSM event from server: ${hsmState}"
-		sendLocationEvent(name: "hsmSetArm", value: hsmState)
+		sendLocationEvent(name: "hsmSetArm", value: hsmState, data: app.id)
+		atomicState.lastHSMChange = hsmState
 		jsonResponse([status: "complete"])		
 	}
 	else
@@ -463,10 +465,14 @@ def realtimeModeChangeHandler(evt)
 def realtimeHSMChangeHandler(evt)
 {
 	if (!pushHSM) return
-	def newState = evt.value
 
-	if (enableDebug) log.debug "Sending HSM state change event to ${clientName}: ${newState}"
-	sendGetCommand("/hsm/set/${URLEncoder.encode(newState)}")
+	if (evt?.data?.toInteger() != app.id && atomicState.lastHSMChange != evt.value)
+	{
+		if (enableDebug) log.debug "Sending HSM state change event to Server: ${evt.value}"
+		sendGetCommand("/hsm/set/${URLEncoder.encode(evt.value)}")
+		atomicState.lastHSMChange = evt.value
+	}
+	else if (enableDebug) log.info "Filtering duplicate HSM state change event."
 }
 
 
@@ -558,11 +564,12 @@ def deviceEvent()
 		{
 			sendEvent("${serverIP}:${params.deviceId}", (Map) [name: event.name, value: event.value, unit: unit, descriptionText: "${event.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: true, data: data])
 			if (enableDebug) log.info "Received event from server/${event.displayName}: [${event.name}, ${event.value} ${unit}, isStateChange: true]"
-			return
+			return jsonResponse([status: "complete"])
 		}
 	}
 
 	if (enableDebug) log.warn "Ignoring Received event from server: Device Not Found!"
+	jsonResponse([status: "error"])
 }
 
 
@@ -1433,5 +1440,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 2]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

@@ -573,8 +573,11 @@ def deviceEvent()
 	{
 		if (enableDebug) log.debug "Received event from Server/${childDevice.label}: [${event.name}, ${event.value} ${unit}, isStateChange: ${event.isStateChange}]"
 		childDevice.sendEvent([name: event.name, value: event.value, unit: unit, descriptionText: "${childDevice.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: event.isStateChange, data: data])
+		return jsonResponse([status: "complete"])
 	}
 	else if (enableDebug) log.warn "Ignoring Received event from Server: Device Not Found!"
+
+	return jsonResponse([status: "error"])
 }
 
 
@@ -1422,5 +1425,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 0]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 2]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
