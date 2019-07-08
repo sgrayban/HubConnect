@@ -122,7 +122,7 @@ def setColor(value)
 	if (value.hue == null || value.saturation == null) return
 
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [hue: value.hue, saturation: value.saturation, level: value?.level])
+	parent.sendDeviceEvent(device.deviceNetworkId, "setColor", [[hue: value.hue, saturation: value.saturation, level: value?.level]])
 }
 
 
@@ -185,4 +185,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "rgbbulb")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 2]}
