@@ -53,27 +53,29 @@ preferences
 @Field ATTRIBUTE_TO_SELECTOR =
 [
 	"alarm":			"alarm",
+	"audioVolume":		"audioVolume",
 	"battery":			"battery",
 	"button":			"button",
-	"bulb":				"bulb",
-	"carbonMonoxide":	"carbonMonoxideDetector",
+	"bulb":			"bulb",
+	"carbonMonoxide":		"carbonMonoxideDetector",
 	"colorMode":		"colorMode",
 	"colorTemperature":	"colorTemperature",
 	"contact":			"contactSensor",
-	"door":				"garageDoorControl",
+	"door":			"garageDoorControl",
 	"doubleTapped":		"doubleTapableButton",
-	"held":				"holdableButton",
+	"held":			"holdableButton",
 	"illuminance":		"illuminanceMeasurement",
 	"level":			"switchLevel",
-	"lock":				"lock",
+	"lock":			"lock",
 	"motion":			"motionSensor",
 	"power":			"powerMeter",
 	"pushed":			"pushableButton",
 	"presence":			"presenceSensor",
 	"refresh":			"refresh",
-	"securityKeypad":	"securityKeypad",
+	"securityKeypad":		"securityKeypad",
 	"shock":			"shockSensor",
 	"smoke":			"smokeDetector",
+	"speechSynthesis":	"speechSynthesis",
 	"speed":			"fanControl",
 	"switch":			"switch",
 	"temperature":		"temperatureMeasurement",
@@ -861,5 +863,5 @@ def versionCheckResponse(response, data)
 }
 
 def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6001]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
