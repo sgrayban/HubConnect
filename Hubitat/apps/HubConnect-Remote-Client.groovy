@@ -1365,7 +1365,7 @@ def otherDevicePage()
 		}
 		section("<b>-= Select SpeechSynthesis (${speechSynth?.size() ?: "0"} connected) =-</b>")
 		{
-			input "SpeechSynth", "capability.speechSynthesis", title: "SpeechSynthesis:", required: false, multiple: true, defaultValue: null
+			input "speechSynth", "capability.speechSynthesis", title: "SpeechSynthesis:", required: false, multiple: true, defaultValue: null
 		}
 		section("<b>-= Select Window Shades (${windowShades?.size() ?: "0"} connected) =-</b>")
 		{
