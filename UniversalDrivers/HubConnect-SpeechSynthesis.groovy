@@ -17,7 +17,8 @@
  */
 metadata 
 {
-	definition(name: "HubConnect SpeechSynthesis", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Siren.groovy")
+    definition(name: "HubConnect SpeechSynthesis", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-SpeechSynthesis.groovy")
+
 	{
 		capability "Actuator"
 		capability "AudioVolume"
