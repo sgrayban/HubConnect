@@ -35,31 +35,31 @@ metadata
 /*
 	installed
     
-	Doesn't do much other than call initialize().
+	Doesn't do much other than call reinit().
 */
 def installed()
 {
-	initialize()
+	reinit()
 }
 
 
 /*
 	updated
     
-	Doesn't do much other than call initialize().
+	Doesn't do much other than call reinit().
 */
 def updated()
 {
-	initialize()
+	reinit()
 }
 
 
 /*
-	initialize
+	reinit aka initialize
     
 	Doesn't do much other than call refresh().
 */
-def initialize()
+def reinit()
 {
 	refresh()
 }
@@ -132,7 +132,7 @@ def speak(value)
 def initialize()
 {
 	// The server will update status
-	parent.sendDeviceEvent(device.deviceNetworkId, "initialize")
+	parent.sendDeviceEvent(device.deviceNetworkId, "initialize", [value])
 }
 
 
@@ -183,4 +183,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "SpeechSynthesis")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 3, build: 0]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 3, build: 1]}
