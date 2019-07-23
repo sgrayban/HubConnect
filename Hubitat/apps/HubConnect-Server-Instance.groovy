@@ -68,6 +68,7 @@ preferences
 	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", attr: ["motion", "temperature", "humidity", "battery"]],
 	"keypad":			[driver: "Keypad", selector: "genericKeypads", attr: ["motion", "temperature", "battery", "tamper", "alarm"]],
 	"lock":			[driver: "Lock", selector: "genericLocks", attr: ["lock", "lockCodes", "codeChanged", "codeLength", "maxCodes", "battery"]],
+	"mobileApp":		[driver: "Mobile App", selector: "mobileApp", attr: ["presence", "notificationText"]],
 	"moisture":			[driver: "Moisture Sensor", selector: "genericMoistures", attr: ["water", "temperature", "battery"]],
 	"motion":			[driver: "Motion Sensor", selector: "genericMotions", attr: ["motion", "temperature", "battery"]],
 	"multipurpose":		[driver: "Multipurpose Sensor", selector: "genericMultipurposes", attr: ["contact", "temperature", "battery", "acceleration", "threeAxis"]],
@@ -917,7 +918,7 @@ def getDevicePageStatus()
 		shackratsDriverPage: smartPlugs?.size() ?: zwaveRepeaters?.size(),
 		switchDimmerBulbPage: genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size() ?: fanControl?.size(),
 		safetySecurityPage: genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size(),
-		otherDevicePage: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: speechSynth?.size() ?: windowShades?.size() ?: audioVolume?.size()
+		otherDevicePage: genericPresences?.size() ?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: speechSynth?.size() ?: windowShades?.size() ?: audioVolume?.size() ?: mobileApp?.size()
 	]
 	status << [all: status.sensorsPage ?: status.shackratsDriverPage ?: status.switchDimmerBulbPage ?: status.safetySecurityPage ?: status.otherDevicePage]
 }
@@ -1626,6 +1627,10 @@ def otherDevicePage()
 		{
 			input "audioVolume", "capability.audioVolume", title: "Audio Receivers:", required: false, multiple: true, defaultValue: null
 		}
+		section("<b>-= Select Hubitat Mobile App device (${mobileApp?.size() ?: "0"} connected) =-</b>")
+		{
+			input "mobileApp", "capability.notification", title: "Mobile Apps:", required: false, multiple: true, defaultValue: null
+		}
 	}
 }
 
@@ -1655,5 +1660,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6004]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6005]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
