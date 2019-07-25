@@ -48,7 +48,7 @@ preferences
 	page(name: "otherDevicePage")
 	page(name: "stCloudDevices")
 	page(name: "customDevicePage")
-    page(name: "shmConfigPage")
+      page(name: "shmConfigPage")
 }
 
 
@@ -58,6 +58,7 @@ preferences
 	"arlocamera":		[driver: "Arlo Camera", selector: "arloProCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
 	"arloqcamera":		[driver: "Arlo Camera", selector: "arloQCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
 	"arrival":			[driver: "Arrival Sensor", selector: "smartThingsArrival", attr: ["presence", "battery", "tone"]],
+	"audioVolume":		[driver: "AVR", selector: "audioVolume", attr: ["switch", "mediaInputSource", "mute", "volume"]],
 	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "button", "temperature", "battery"]],
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
@@ -65,10 +66,11 @@ preferences
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
 	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", attr: ["speed"]],
 	"garagedoor":		[driver: "Garage Door", selector: "garageDoors", attr: ["door", "contact"]],
-	"irissmartplug":	[driver: "Iris Smart Plug", selector: "smartPlugs", attr: ["switch", "power", "voltage", "ACFrequency"]],
+	"irissmartplug":		[driver: "Iris Smart Plug", selector: "smartPlugs", attr: ["switch", "power", "voltage", "ACFrequency"]],
 	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", attr: ["motion", "temperature", "humidity", "battery"]],
 	"keypad":			[driver: "Keypad", selector: "genericKeypads", attr: ["motion", "temperature", "battery", "tamper", "alarm"]],
-	"lock":				[driver: "Lock", selector: "genericLocks", attr: ["lock", "lockCodes", "codeChanged", "codeLength", "maxCodes", "battery"]],
+	"lock":			[driver: "Lock", selector: "genericLocks", attr: ["lock", "lockCodes", "codeChanged", "codeLength", "maxCodes", "battery"]],
+	"mobileApp":		[driver: "Mobile App", selector: "mobileApp", attr: ["presence", "notificationText"]],
 	"moisture":			[driver: "Moisture Sensor", selector: "genericMoistures", attr: ["water", "temperature", "battery"]],
 	"motion":			[driver: "Motion Sensor", selector: "genericMotions", attr: ["motion", "temperature", "battery"]],
 	"multipurpose":		[driver: "Multipurpose Sensor", selector: "genericMultipurposes", attr: ["contact", "temperature", "battery", "acceleration", "threeAxis"]],
@@ -82,11 +84,12 @@ preferences
 	"siren":			[driver: "Siren", selector: "genericSirens", attr: ["switch", "alarm", "battery"]],
 	"smartsmoke":		[driver: "Smart Smoke/CO", selector: "smartSmokeCO", attr: ["smoke", "carbonMonoxide", "battery", "temperature", "humidity", "switch", "level", "hue", "saturation", "pressure"]],
 	"smoke":			[driver: "Smoke/CO Detector", selector: "genericSmokeCO", attr: ["smoke", "carbonMonoxide", "battery"]],
+	"speechSynthesis":	[driver: "SpeechSynthesis", selector: "speechSynth", attr: ["mute", "version", "volume"]],
 	"switch":			[driver: "Switch", selector: "genericSwitches", attr: ["switch"]],
 	"thermostat":		[driver: "Thermostat", selector: "genericThermostats", attr: ["coolingSetpoint", "heatingSetpoint", "schedule", "supportedThermostatFanModes", "supportedThermostatModes", "temperature", "thermostatFanMode", "thermostatMode", "thermostatOperatingState", "thermostatSetpoint"]],
 	"valve":			[driver: "Valve", selector: "genericValves", attr: ["valve"]],
 	"windowshade":		[driver: "Window Shade", selector: "windowShades", attr: ["switch", "position", "windowShade"]],
-	"zwaverepeater":	[driver: "Iris Z-Wave Repeater", selector: "zwaveRepeaters", attr: ["status", "lastRefresh", "deviceMSR", "lastMsgRcvd"]]
+	"zwaverepeater":		[driver: "Iris Z-Wave Repeater", selector: "zwaveRepeaters", attr: ["status", "lastRefresh", "deviceMSR", "lastMsgRcvd"]]
 ]
 
 
@@ -1091,7 +1094,7 @@ def devicePage()
 	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
 	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
 	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size()?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: windowShades?.size()
+	def otherDevicePageCount = genericPresences?.size()?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: speechSynth?.size() ?: windowShades?.size() ?: audioVolume?.size() ?: mobileApp?.size()
 	def stCloudDevicesCount = arloProCameras?.size() ?: arloQCameras?.size() ?: ringDoorbellPros?.size()
 
 	def totalNativeDevices = 0
@@ -1322,9 +1325,21 @@ def otherDevicePage()
 		{
 			input "garageDoors", "capability.garageDoorControl", title: "Garage Doors (door):", required: false, multiple: true, defaultValue: null
 		}
-		section("-= Select Window Shades (${windowShades?.size() ?: "0"} connected) =-")
+		section("<b>-= Select SpeechSynthesis (${speechSynth?.size() ?: "0"} connected) =-</b>")
+		{
+			input "speechSynth", "capability.speechSynthesis", title: "SpeechSynthesis:", required: false, multiple: true, defaultValue: null
+		}
+		section("<b>-= Select Window Shades (${windowShades?.size() ?: "0"} connected) =-</b>")
 		{
 			input "windowShades", "capability.windowShade", title: "Window Shades:", required: false, multiple: true, defaultValue: null
+		}
+		section("<b>-= Select Audio Receivers (${audioVolume?.size() ?: "0"} connected) =-</b>")
+		{
+			input "audioVolume", "capability.audioVolume", title: "Audio Receivers:", required: false, multiple: true, defaultValue: null
+		}
+		section("<b>-= Select Hubitat Mobile App device (${mobileApp?.size() ?: "0"} connected) =-</b>")
+		{
+			input "mobileApp", "capability.notification", title: "Mobile Apps:", required: false, multiple: true, defaultValue: null
 		}
 	}
 }
@@ -1426,5 +1441,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 2]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 3]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
