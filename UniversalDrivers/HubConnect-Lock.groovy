@@ -19,13 +19,14 @@ metadata
 {
 	definition(name: "HubConnect Lock", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Lock.groovy")
 	{
-        capability "Actuator"
-        capability "Lock"
-        capability "Lock Codes"
+		capability "Actuator"
+		capability "Lock"
+		capability "Lock Codes"
 		capability "Battery"
 		capability "Refresh"
 
 		attribute "version", "string"
+		attribute "lastCodeName", "string"
 		
 		command "sync"
 	}
@@ -172,4 +173,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "lock")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 6002]}
