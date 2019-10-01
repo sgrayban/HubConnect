@@ -28,6 +28,7 @@ metadata
 		capability "Refresh"
 
 		attribute "version", "string"
+		attribute "lastCodeName", "string"
 		
 		command "sync"
 	}
@@ -257,4 +258,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "keypad")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 6002]}
