@@ -26,6 +26,7 @@ metadata
 		capability "Refresh"
 
 		attribute "version", "string"
+		attribute "lastCodeName", "string"
 		
 		command "sync"
 	}
@@ -212,4 +213,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "lock")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 3, build: 0]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 3, build: 6001]}
