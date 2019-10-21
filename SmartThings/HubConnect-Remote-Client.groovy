@@ -214,10 +214,10 @@ def remoteDeviceCommand()
 
 	// Get the device
 	def device = getDevice(params)
-	if (device == null)
+	if (!device)
 	{
-//		log.error "Could not locate a device with an id of ${device?.deviceId}"
-		log.error "Command for an Undefined Device can not be processed."
+		log.error "Could not locate a device with an id of ${param?.deviceId}"
+//		log.error "Command for an Undefined Device can not be processed."
 		return jsonResponse([status: "error"])
 	}
 	
@@ -571,7 +571,7 @@ def deviceEvent()
 
 	def event = parseJson(new String(eventraw))
 	def data = event?.data ?: ""
-    def unit = event?.unit ?: ""
+	def unit = event?.unit ?: ""
 
 	def childDevice = getChildDevices()?.find { it.deviceNetworkId == "${serverIP}:${params.deviceId}"}
 	if (childDevice)
@@ -1112,7 +1112,8 @@ def devicePage()
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		///totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
 	}
 	
 	def totalDevices = totalNativeDevices + totalCustomDevices
@@ -1442,5 +1443,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 6006]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 6007]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
