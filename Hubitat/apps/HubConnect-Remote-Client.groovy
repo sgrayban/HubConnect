@@ -215,60 +215,6 @@ def remoteDeviceCommand()
 
 	// Get the device
 	def device = getDevice(params)
-	if (!device)
-	{
-		log.error "Could not locate a device with an id of ${param?.deviceId}"
-//		log.error "Command for an Undefined Device can not be processed."
-		return jsonResponse([status: "error"])
-	}
-	
-	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}] - "
-	
-	// Make sure the physical device supports the command
-	if (!device.hasCommand(params.deviceCommand))
-	{
-		log.warn "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
-		return jsonResponse([status: "error"])
-	}
-
-
-	// Handle remaining commands
-	else if (params.deviceCommand != "")
-	{
-		switch (commandParams?.size())
-		{
-			case 1:
-				device."${params.deviceCommand}"(commandParams[0])
-				break
-			case 2:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1])
-				break
-			case 3:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1], commandParams[2])
-				break
-			case 4:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1], commandParams[2], commandParams[3])
-				break
-			default:
-				device."${params.deviceCommand}"()
-				break
-		}
-	}
-
-	else
-	{
-		log.error "Could not locate a device or command."
-		return jsonResponse([status: "error"])
-	}
-	
-	jsonResponse([status: "success"])
-}
-def remoteDeviceCommand()
-{
-	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
-
-	// Get the device
-	def device = getDevice(params)
 	if (device == null)
 	{
 		log.error "Could not locate a device with an id of ${param.deviceId}"
