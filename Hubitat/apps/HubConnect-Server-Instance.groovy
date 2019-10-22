@@ -1354,7 +1354,8 @@ def devicePage()
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		///totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
 	}
 	
 	def totalDevices = totalNativeDevices + totalCustomDevices
@@ -1444,5 +1445,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6008]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
