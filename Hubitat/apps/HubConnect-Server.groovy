@@ -840,7 +840,8 @@ def versionCheck()
 
 	def requestParams =
 	[
-		uri: "http://irisusers.com/hubitat/hubconnect/latest.php?s=${token}",
+		//uri: "http://irisusers.com/hubitat/hubconnect/latest.php?s=${token}",
+		uri: "http://hubconnect.hubitatcommunity.com/latest.php?s=${token}",
 		requestContentType: 'application/json',
 		contentType: 'application/json'
 	]
@@ -863,5 +864,5 @@ def versionCheckResponse(response, data)
 }
 
 def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6001]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6002]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
