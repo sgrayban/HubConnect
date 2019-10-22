@@ -320,13 +320,11 @@ def hsmReceiveAlert()
 def subscribeLocalEvents()
 {
 	unsubscribe()
-
 	if (state.connectionType == "socket")
 	{
 		log.info "Skipping event subscriptions...  Using event socket to send events to server."
 		return
-	}	
-
+	}
 	log.info "Subscribing to events.."
 
 	NATIVE_DEVICES.each
