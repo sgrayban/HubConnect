@@ -222,7 +222,7 @@ def remoteDeviceCommand()
 		return jsonResponse([status: "error"])
 	}
 	
-	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
+	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}] - "
 	
 	// Make sure the physical device supports the command
 	if (!device.hasCommand(params.deviceCommand))
@@ -230,6 +230,7 @@ def remoteDeviceCommand()
 		log.warn "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
+
 
 	// Handle remaining commands
 	else if (params.deviceCommand != "")
@@ -259,6 +260,32 @@ def remoteDeviceCommand()
 		log.error "Could not locate a device or command."
 		return jsonResponse([status: "error"])
 	}
+	
+	jsonResponse([status: "success"])
+}
+def remoteDeviceCommand()
+{
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
+
+	// Get the device
+	def device = getDevice(params)
+	if (device == null)
+	{
+		log.error "Could not locate a device with an id of ${param.deviceId}"
+		return jsonResponse([status: "error"])
+	}
+	
+	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
+	
+	// Make sure the physical device supports the command
+	if (!device.hasCommand(params.deviceCommand))
+	{
+		log.warn "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
+		return jsonResponse([status: "error"])
+	}
+
+	// Execute the command
+	device."${params.deviceCommand}"(*commandParams)
 	
 	jsonResponse([status: "success"])
 }
@@ -1147,7 +1174,8 @@ def devicePage()
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		///totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
 	}
 	
 	def totalDevices = totalNativeDevices + totalCustomDevices
@@ -1281,5 +1309,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6010]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
