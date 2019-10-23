@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect RGBW Bulb", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-RGB-Bulb.groovy")
+	definition(name: "HubConnect RGBW Bulb", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-RGBW-Bulb.groovy")
 	{
 		capability "Switch"
 		capability "Switch Level"
