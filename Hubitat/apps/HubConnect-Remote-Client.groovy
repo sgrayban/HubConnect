@@ -193,7 +193,7 @@ def getDevice(params)
 		{
 	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -217,7 +217,7 @@ def remoteDeviceCommand()
 	def device = getDevice(params)
 	if (device == null)
 	{
-		log.error "Could not locate a device with an id of ${param.deviceId}"
+		log.error "Could not locate a device with an id of ${params.deviceId}"
 		return jsonResponse([status: "error"])
 	}
 	
