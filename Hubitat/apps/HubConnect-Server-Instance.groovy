@@ -480,7 +480,7 @@ def getDevice(params)
 		{
 	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -611,13 +611,8 @@ def hsmReceiveAlert()
 */
 def subscribeLocalEvents()
 {
+	log.info "Subscribing to device events.."
 	unsubscribe()
-	if (localConnectionType == "socket")
-	{
-		log.info "Skipping event subscriptions...  Using event socket to send events to server."
-		return
-	}
-	log.info "Subscribing to events.."
 
 	NATIVE_DEVICES.each
 	{
@@ -1450,5 +1445,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]} // HubConnect Server Instance
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
