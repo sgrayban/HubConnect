@@ -193,7 +193,7 @@ def getDevice(params)
 		{
 	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -215,10 +215,9 @@ def remoteDeviceCommand()
 
 	// Get the device
 	def device = getDevice(params)
-	if (!device)
+	if (device == null)
 	{
-		log.error "Could not locate a device with an id of ${param?.deviceId}"
-//		log.error "Command for an Undefined Device can not be processed."
+		log.error "Could not locate a device with an id of ${params.deviceId}"
 		return jsonResponse([status: "error"])
 	}
 	
@@ -352,8 +351,7 @@ def subscribeLocalEvents()
 	{
 		log.info "Skipping event subscriptions...  Using event socket to send events to server."
 		return
-	}	
-
+	}
 	log.info "Subscribing to events.."
 
 	NATIVE_DEVICES.each
@@ -571,7 +569,7 @@ def deviceEvent()
 		}
 	}
 
-	if (enableDebug) log.warn "Ignoring Received event from server: Device Not Found!"
+	if (enableDebug) log.warn "Ignoring Received event from server: ${event.displayName} Not Found!"
 	jsonResponse([status: "error"])
 }
 
@@ -1147,7 +1145,8 @@ def devicePage()
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		///totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
 	}
 	
 	def totalDevices = totalNativeDevices + totalCustomDevices
@@ -1281,5 +1280,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]} // HubConnect Remote Client for Hubitat
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6012]} // HubConnect Remote Client for Hubitat
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
