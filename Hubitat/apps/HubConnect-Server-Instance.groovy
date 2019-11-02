@@ -226,7 +226,7 @@ def deviceEvent()
 		return jsonResponse([:])
 	}
 
-	if (enableDebug) log.warn "Ignoring Received event from ${clientName}: Device Not Found!"
+	if (enableDebug) log.warn "Ignoring Received event from ${clientName}: ${event.displayName} Not Found!"
 }
 
 
@@ -480,7 +480,7 @@ def getDevice(params)
 		{
 	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -1307,12 +1307,12 @@ def initialize()
 	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
 	if (hubDevice)
 	{
-		hubDevice.setConnectionType(remoteType == "local" && localConnectionType == "socket" ? "socket" : "http")
+		hubDevice.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http", state.clientURI)
 	}
 	else if (state.clientToken)
 	{
 		hubDevice = createHubChildDevice()
-		hubDevice?.setConnectionType(remoteType == "local" && localConnectionType == "socket" ? "socket" : "http")
+		hubDevice?.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http", state.clientURI)
 	}
 
 	app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
@@ -1445,5 +1445,5 @@ def customDevicePage()
 	}
 }
 
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6009]} // HubConnect Server Instance
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 4, build: 6012]} // HubConnect Server Instance
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
