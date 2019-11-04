@@ -1307,12 +1307,12 @@ def initialize()
 	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
 	if (hubDevice)
 	{
-		hubDevice.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http", state.clientURI)
+		hubDevice.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http")
 	}
 	else if (state.clientToken)
 	{
 		hubDevice = createHubChildDevice()
-		hubDevice?.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http", state.clientURI)
+		hubDevice?.setConnectionType(remoteType == "local" || remoteType == "homebridge" && localConnectionType == "socket" ? "socket" : "http")
 	}
 
 	app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
