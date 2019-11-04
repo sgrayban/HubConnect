@@ -1394,7 +1394,7 @@ def customDevicePage()
 			def customSel = settings."custom_${groupname}"
 			section("-= Select ${driver.driver} Devices (${customSel?.size() ?: "0"} connected) =-")
 			{
-				input "custom_${groupname}", "capability.${driver.selector}", title: "${driver.driver} Devices (${driver.attr}):", required: false, multiple: true, defaultValue: null
+				input "custom_${groupname}", "capability.${driver.selector.substring(driver.selector.lastIndexOf("_") + 1)}", title: "${driver.driver} Devices (${driver.attr}):", required: false, multiple: true, defaultValue: null
 			}
 		}
 	}
@@ -1443,5 +1443,5 @@ def getVersions()
 }
 
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 6007]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 6008]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
