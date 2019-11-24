@@ -17,24 +17,53 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Button", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Button.groovy")
+	definition(name: "HubConnect Button", namespace: "shackrat", author: "Steve White", ocfDeviceType: "oic.r.button ", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/SmartThings/DeviceTypes/HubConnect-Button.groovy")
 	{
-		capability "PushableButton"
-		capability "HoldableButton"
-		capability "DoubleTapableButton"
-		capability "ReleasableButton"
+ 		capability "Button"				// SmartThings capability
 		capability "Temperature Measurement"
 		capability "Battery"
 
 		attribute "version", "string"
 
-		command "push",			[[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
-		command "hold",			[[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
-		command "doubleTap",	[[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
-		command "released",		[[name:"NUMBER", type: "NUMBER", description: "Button number" ]]
-
+		command "push"				// SmartThings capability
+		command "hold"				// SmartThings capability
+		
 		command "sync"
 		command "test"
+	}
+
+	tiles (scale: 2) 
+	{
+      multiAttributeTile(name:"button", type:"generic", width:6, height:4) 
+      {
+			tileAttribute("device.button", key: "PRIMARY_CONTROL")
+			{
+				attributeState "default", label:'', backgroundColor:"#ffffff", icon: "st.unknown.zwave.remote-controller"
+			}
+			tileAttribute ("device.battery", key: "SECONDARY_CONTROL") 
+			{
+				attributeState "battery", label:'${currentValue} % battery'
+			}
+			tileAttribute("buttons",key: "SECONDARY_CONTROL")
+			{
+				attributeState "numberOfButtons", label: '${currentValue}'
+			}
+		}
+		standardTile("sync", "sync", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: 'Sync', action: "sync", icon: "st.Bath.bath19"
+		}
+		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", action: "refresh.refresh", icon: "st.secondary.refresh"
+		}
+		valueTile("version", "version", inactiveLabel: false, decoration: "flat", width: 2, height: 2)
+		{
+			state "default", label: '${currentValue}'
+		}
+
+		main(["button"])
+		details(["button", "sync", "refresh", "version"])
 	}
 }
 
@@ -91,7 +120,7 @@ def parse(String description)
 def push(btn)
 {
 	// The server will update pushed status
-	parent.sendDeviceEvent(device.deviceNetworkId, "push", [btn])
+	parent.sendDeviceEvent(device.deviceNetworkId, "pushed", [btn])
 }
 
 
@@ -127,7 +156,19 @@ def doubleTap(btn)
 def released(btn)
 {
 	// The server will update released status
-	parent.sendDeviceEvent(device.deviceNetworkId, "release", [btn])
+	parent.sendDeviceEvent(device.deviceNetworkId, "released", [btn])
+}
+
+
+/*
+	refresh
+    
+	Refreshes the device by requesting an update from the client hub.
+*/
+def refresh()
+{
+	// The server will update status
+	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
 }
 
 
@@ -142,4 +183,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "button")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 5, build: 0]}
+def getDriverVersion() {[platform: "SmartThings", major: 1, minor: 2, build: 1]}

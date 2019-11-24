@@ -12,7 +12,7 @@
  *
  * By downloading, installing, and/or executing this software you hereby agree to the terms and conditions set forth in the HubConnect license agreement.
  * <http://irisusers.com/hubitat/hubconnect/HubConnect_License_Agreement.html>
- * 
+ *
  * Hubitat is the trademark and intellectual property of Hubitat, Inc. Retail Media Concepts LLC has no formal or informal affiliations or relationships with Hubitat.
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
@@ -42,54 +42,55 @@ preferences
 	page(name: "connectPage")
 	page(name: "devicePage")
 	page(name: "sensorsPage")
-	page(name: "shackratsDriverPage")
-	page(name: "switchDimmerBulbPage")
-	page(name: "safetySecurityPage")
-	page(name: "otherDevicePage")
-	page(name: "stCloudDevices")
 	page(name: "customDevicePage")
     page(name: "shmConfigPage")
+	page(name: "dynamicDevicePage")
+    page(name: "upgradePage")
 }
 
 
 // Map containing driver and attribute definitions for each device class
 @Field NATIVE_DEVICES =
 [
-	"arlocamera":		[driver: "Arlo Camera", selector: "arloProCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
-	"arloqcamera":		[driver: "Arlo Camera", selector: "arloQCameras", attr: ["switch", "motion", "sound", "rssi", "battery"]],
-	"arrival":			[driver: "Arrival Sensor", selector: "smartThingsArrival", attr: ["presence", "battery", "tone"]],
-	"audioVolume":		[driver: "AVR", selector: "audioVolume", attr: ["switch", "mediaInputSource", "mute", "volume"]],
-	"button":			[driver: "Button", selector: "genericButtons", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "button", "temperature", "battery"]],
-	"contact":			[driver: "Contact Sensor", selector: "genericContacts", attr: ["contact", "temperature", "battery"]],
-	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", attr: ["switch", "level"]],
-	"domemotion":		[driver: "Dome Motion Sensor", selector: "domeMotions", attr: ["motion", "temperature", "illuminance", "battery"]],
-	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
-	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", attr: ["speed"]],
-	"garagedoor":		[driver: "Garage Door", selector: "garageDoors", attr: ["door", "contact"]],
-	"irissmartplug":	[driver: "Iris Smart Plug", selector: "smartPlugs", attr: ["switch", "power", "voltage", "ACFrequency"]],
-	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", attr: ["motion", "temperature", "humidity", "battery"]],
-	"keypad":			[driver: "Keypad", selector: "genericKeypads", attr: ["motion", "temperature", "battery", "tamper", "alarm", "lastCodeName"]],
-	"lock":				[driver: "Lock", selector: "genericLocks", attr: ["lock", "lockCodes", "lastCodeName", "codeChanged", "codeLength", "maxCodes", "battery"]],
-	"mobileApp":		[driver: "Mobile App", selector: "mobileApp", attr: ["presence", "notificationText"]],
-	"moisture":			[driver: "Moisture Sensor", selector: "genericMoistures", attr: ["water", "temperature", "battery"]],
-	"motion":			[driver: "Motion Sensor", selector: "genericMotions", attr: ["motion", "temperature", "battery"]],
-	"multipurpose":		[driver: "Multipurpose Sensor", selector: "genericMultipurposes", attr: ["contact", "temperature", "battery", "acceleration", "threeAxis"]],
-	"omnipurpose":		[driver: "Omnipurpose Sensor", selector: "genericOmnipurposes", attr: ["motion", "temperature", "humidity", "illuminance", "ultravioletIndex", "tamper", "battery"]],
-	"pocketsocket":		[driver: "Pocket Socket", selector: "pocketSockets", attr: ["switch", "power"]],
-	"power":			[driver: "Power Meter", selector: "powerMeters", attr: ["power"]],
-	"presence":			[driver: "Presence Sensor", selector: "genericPresences", attr: ["presence", "battery"]],
-	"ringdoorbell":		[driver: "Ring Doorbell", selector: "ringDoorbellPros", attr: ["numberOfButtons", "pushed", "motion"]],
-	"rgbbulb":			[driver: "RGB Bulb", selector: "genericRGBs", attr: ["switch", "level", "hue", "saturation", "RGB", "color", "colorMode", "colorTemperature"]],
-	"shock":			[driver: "Shock Sensor", selector: "genericShocks", attr: ["shock", "battery"]],
-	"siren":			[driver: "Siren", selector: "genericSirens", attr: ["switch", "alarm", "battery"]],
-	"smartsmoke":		[driver: "Smart Smoke/CO", selector: "smartSmokeCO", attr: ["smoke", "carbonMonoxide", "battery", "temperature", "humidity", "switch", "level", "hue", "saturation", "pressure"]],
-	"smoke":			[driver: "Smoke/CO Detector", selector: "genericSmokeCO", attr: ["smoke", "carbonMonoxide", "battery"]],
-	"speechSynthesis":	[driver: "SpeechSynthesis", selector: "speechSynth", attr: ["mute", "version", "volume"]],
-	"switch":			[driver: "Switch", selector: "genericSwitches", attr: ["switch"]],
-	"thermostat":		[driver: "Thermostat", selector: "genericThermostats", attr: ["coolingSetpoint", "heatingSetpoint", "schedule", "supportedThermostatFanModes", "supportedThermostatModes", "temperature", "thermostatFanMode", "thermostatMode", "thermostatOperatingState", "thermostatSetpoint"]],
-	"valve":			[driver: "Valve", selector: "genericValves", attr: ["valve"]],
-	"windowshade":		[driver: "Window Shade", selector: "windowShades", attr: ["switch", "position", "windowShade"]],
-	"zwaverepeater":	[driver: "Iris Z-Wave Repeater", selector: "zwaveRepeaters", attr: ["status", "lastRefresh", "deviceMSR", "lastMsgRcvd"]]
+	"arlocamera":		[driver: "Arlo Camera", selector: "arloProCameras", capability: "device.ArloProCamera", prefGroup: "smartthings", attr: ["switch", "motion", "sound", "rssi", "battery"]],
+	"arloqcamera":		[driver: "Arlo Camera", selector: "arloQCameras", capability: "device.ArloQCamera", prefGroup: "smartthings", attr: ["switch", "motion", "sound", "rssi", "battery"]],
+	"arlogocamera":		[driver: "Arlo Camera", selector: "arloGoCameras", capability: "device.ArloGoCamera", prefGroup: "smartthings", attr: ["switch", "motion", "sound", "rssi", "battery"]],
+	"arrival":			[driver: "Arrival Sensor", selector: "smartThingsArrival", capability: "presenceSensor", prefGroup: "other", attr: ["presence", "battery", "tone"]],
+	"audioVolume":		[driver: "AVR", selector: "audioVolume", capability: "audioVolume", prefGroup: "other", attr: ["switch", "mediaInputSource", "mute", "volume"]],
+	"button":			[driver: "Button", selector: "genericButtons", capability: "pushableButton", prefGroup: "other", attr: ["numberOfButtons", "pushed", "held", "doubleTapped", "button", "temperature", "battery"]],
+	"contact":			[driver: "Contact Sensor", selector: "genericContacts", capability: "contactSensor", prefGroup: "sensors", attr: ["contact", "temperature", "battery"]],
+	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", capability: "switchLevel", prefGroup: "switches", attr: ["switch", "level"]],
+	"domemotion":		[driver: "DomeMotion Sensor", selector: "domeMotions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "illuminance", "battery"]],
+	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", capability: "energyMeter", prefGroup: "switches", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
+	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
+	"fanspeed":			[driver: "FanSpeed Controller", selector: "fanSpeedControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
+	"garagedoor":		[driver: "Garage Door", selector: "garageDoors", capability: "garageDoorControl", prefGroup: "other", attr: ["door", "contact"]],
+	"gvomnisensor":		[driver: "GvOmniSensor", selector: "gvOmniSensor", capability: "waterSensor", prefGroup: "sensors", attr: ["acceleration", "carbonDioxide", "carbonMonoxide", "contact", "humidity", "illuminance", "motion", "presence", "smoke", "temperature", "variable", "water"]],
+	"irissmartplug":	[driver: "Iris SmartPlug", selector: "smartPlugs", capability: "device.IrisSmartPlug", prefGroup: "shackrat", attr: ["switch", "power", "voltage", "ACFrequency"]],
+	"irisv3motion":		[driver: "IrisV3 Motion Sensor", selector: "irisV3Motions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "humidity", "battery"]],
+	"keypad":			[driver: "Keypad", selector: "genericKeypads", capability: "securityKeypad", prefGroup: "safety", attr: ["motion", "temperature", "battery", "tamper", "alarm", "lastCodeName"]],
+	"lock":				[driver: "Lock", selector: "genericLocks", capability: "lock", prefGroup: "safety", attr: ["lock", "lockCodes", "lastCodeName", "codeChanged", "codeLength", "maxCodes", "battery"]],
+	"mobileApp":		[driver: "Mobile App", selector: "mobileApp", capability: "notification", prefGroup: "other", attr: ["presence", "notificationText"]],
+	"moisture":			[driver: "Moisture Sensor", selector: "genericMoistures", capability: "waterSensor", prefGroup: "safety", attr: ["water", "temperature", "battery"]],
+	"motion":			[driver: "Motion Sensor", selector: "genericMotions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "battery"]],
+	"multipurpose":		[driver: "Multipurpose Sensor", selector: "genericMultipurposes", capability: "accelerationSensor", prefGroup: "sensors", attr: ["contact", "temperature", "battery", "acceleration", "threeAxis"]],
+	"omnipurpose":		[driver: "Omnipurpose Sensor", selector: "genericOmnipurposes", capability: "relativeHumidityMeasurement", prefGroup: "sensors", attr: ["motion", "temperature", "humidity", "illuminance", "ultravioletIndex", "tamper", "battery"]],
+	"pocketsocket":		[driver: "Pocket Socket", selector: "pocketSockets", capability: "switch", prefGroup: "switches", attr: ["switch", "power"]],
+	"power":			[driver: "Power Meter", selector: "powerMeters", capability: "powerMeter", prefGroup: "switches", attr: ["power"]],
+	"presence":			[driver: "Presence Sensor", selector: "genericPresences", capability: "presenceSensor", prefGroup: "other", attr: ["presence", "battery"]],
+	"ringdoorbell":		[driver: "Ring Doorbell", selector: "ringDoorbellPros", capability: "device.RingDoorbellPro", prefGroup: "smartthings", attr: ["numberOfButtons", "pushed", "motion"]],
+	"rgbbulb":			[driver: "RGB Bulb", selector: "genericRGBs", capability: "colorControl", prefGroup: "switches", attr: ["switch", "level", "hue", "saturation", "RGB", "color", "colorMode", "colorTemperature"]],
+	"rgbwbulb":			[driver: "RGBW Bulb", selector: "genericRGBW", capability: "colorMode", prefGroup: "switches", attr: ["switch", "level", "hue", "saturation", "RGB(w)", "color", "colorMode", "colorTemperature"]],
+	"shock":			[driver: "Shock Sensor", selector: "genericShocks", capability: "shockSensor", prefGroup: "sensors", attr: ["shock", "battery"]],
+	"siren":			[driver: "Siren", selector: "genericSirens", capability: "alarm", prefGroup: "safety", attr: ["switch", "alarm", "battery"]],
+	"smartsmoke":		[driver: "Smart SmokeCO", selector: "smartSmokeCO", capability: "device.HaloSmokeAlarm", prefGroup: "safety", attr: ["smoke", "carbonMonoxide", "battery", "temperature", "humidity", "switch", "level", "hue", "saturation", "pressure"]],
+	"smoke":			[driver: "SmokeCO", selector: "genericSmokeCO", capability: "smokeDetector", prefGroup: "safety", attr: ["smoke", "carbonMonoxide", "battery"]],
+	"speechSynthesis":	[driver: "SpeechSynthesis", selector: "speechSynth", capability: "speechSynthesis", prefGroup: "other", attr: ["mute", "version", "volume"]],
+	"switch":			[driver: "Switch", selector: "genericSwitches", capability: "switch", prefGroup: "switches", attr: ["switch"]],
+	"thermostat":		[driver: "Thermostat", selector: "genericThermostats", capability: "thermostat", prefGroup: "other", attr: ["coolingSetpoint", "heatingSetpoint", "schedule", "supportedThermostatFanModes", "supportedThermostatModes", "temperature", "thermostatFanMode", "thermostatMode", "thermostatOperatingState", "thermostatSetpoint"]],
+	"windowshade":		[driver: "Window Shade", selector: "windowShades", capability: "windowShade", prefGroup: "other", attr: ["switch", "position", "windowShade"]],
+	"valve":			[driver: "Valve", selector: "genericValves", capability: "valve", prefGroup: "other", attr: ["valve"]],
+	"zwaverepeater":	[driver: "Iris Z-Wave Repeater", selector: "zwaveRepeaters", capability: "device.IrisZ-WaveRepeater", prefGroup: "shackrat", attr: ["status", "lastRefresh", "deviceMSR", "lastMsgRcvd"]]
 ]
 
 
@@ -113,6 +114,10 @@ mappings
 	{
 		action: [GET: "serverModeChangeEvent"]
 	}
+    path("/hsm/get")
+	{
+		action: [GET: "getAllHSMStates"]
+	}
     path("/hsm/set/:name")
 	{
 		action: [GET: "hsmReceiveEvent"]
@@ -133,6 +138,10 @@ mappings
 	{
 		action: [GET: "remoteUpdate"]
 	}
+    path("/system/tsreport/get")
+	{
+		action: [GET: "getTSReport"]
+	}
 
 	// Server mappings
     path("/devices/save")
@@ -148,7 +157,7 @@ mappings
 
 /*
 	getDeviceSync
-    
+
 	Purpose: Retrieves the physical device details and returns them to the controller (main) hub.
 
 	URL Format: GET /device/:deviceId/sync/:type
@@ -158,11 +167,11 @@ mappings
 def getDeviceSync()
 {
 	log.info "Received device update request from server: [${params.deviceId}, type ${params.type}]"
-	
+
 	def device = getDevice(params)
 	if (device)
 	{
-		def currentAttributes = getAttributeMap(device, params.type)	
+		def currentAttributes = getAttributeMap(device, params.type)
 		def label = device.label ?: device.name
 		jsonResponse([status: "success", name: "${device.name}", label: "${label}", currentValues: currentAttributes])
 	}
@@ -171,8 +180,8 @@ def getDeviceSync()
 
 /*
 	getDevice
-    
-	Purpose: Helper function to retreive a device from all groups of devices. 
+
+	Purpose: Helper function to retreive a device from all groups of devices.
 */
 def getDevice(params)
 {
@@ -201,7 +210,7 @@ def getDevice(params)
 
 /*
 	remoteDeviceCommand
-    
+
 	Purpose: Event handler for remote hub device events.
 
 	URL format: GET /event/:deviceId/:deviceCommand/:commandParams
@@ -214,51 +223,33 @@ def remoteDeviceCommand()
 
 	// Get the device
 	def device = getDevice(params)
-	if (!device)
+	if (device == null)
 	{
-		log.error "Could not locate a device with an id of ${param?.deviceId}"
-//		log.error "Command for an Undefined Device can not be processed."
+		log.error "Could not locate a device with an id of ${params.deviceId}"
 		return jsonResponse([status: "error"])
 	}
-	
+
 	if (enableDebug) log.info "Received command from server: [\"${device.label ?: device.name}\": ${params.deviceCommand}]"
-	
+
+	def deviceCommand = params.deviceCommand
+
+	// Fix for broken button ST drivers
+	if (deviceCommand == "push" && !device.hasCommand("push"))
+	{
+		deviceCommand = "push${commandParams[0]}"
+		commandParams = []
+	}
+
 	// Make sure the physical device supports the command
-	if (!device.hasCommand(params.deviceCommand))
+	if (!device.hasCommand(deviceCommand))
 	{
 		log.error "The device [${device.label ?: device.name}] does not support the command ${params.deviceCommand}."
 		return jsonResponse([status: "error"])
 	}
 
-	// Handle remaining commands
-	else if (params.deviceCommand != "")
-	{
-		switch (commandParams?.size())
-		{
-			case 1:
-				device."${params.deviceCommand}"(commandParams[0])
-				break
-			case 2:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1])
-				break
-			case 3:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1], commandParams[2])
-				break
-			case 4:
-				device."${params.deviceCommand}"(commandParams[0], commandParams[1], commandParams[2], commandParams[3])
-				break
-			default:
-				device."${params.deviceCommand}"()
-				break
-		}
-	}
+	// Execute the command
+	device."${deviceCommand}"(*commandParams)
 
-	else
-	{
-		log.error "Could not locate a device or command."
-		return jsonResponse([status: "error"])
-	}
-	
 	jsonResponse([status: "success"])
 }
 
@@ -292,7 +283,7 @@ def serverModeChangeEvent()
 
 /*
 	hsmReceiveEvent
-    
+
 	Purpose: Event handler for server (controller) HSM status change events.
 
 	URL Format: (GET) /hsm/set/:name
@@ -303,7 +294,7 @@ def serverModeChangeEvent()
 def hsmReceiveEvent()
 {
     def hsmState = params?.name ? URLDecoder.decode(params?.name) : ""
-    
+
     def hsmToSHM =
 	[
 		armAway:	settings?.armAway,
@@ -319,7 +310,7 @@ def hsmReceiveEvent()
 		{
 			if (enableDebug) log.debug "Received HSM/SHM event from server: ${hsmState}, setting SHM state to ${shmState}"
 			sendLocationEvent(name: "alarmSystemStatus", value: shmState)
-			jsonResponse([status: "complete"])	
+			jsonResponse([status: "complete"])
 		}
 		else
 		{
@@ -330,14 +321,14 @@ def hsmReceiveEvent()
 	else
 	{
 		log.error "Received HSM event from server: ${hsmState} does not exist!"
-		jsonResponse([status: "error"])	
+		jsonResponse([status: "error"])
     }
 }
 
 
 /*
 	subscribeLocalEvents
-    
+
 	Purpose: Subscribes to all device events for all attribute returned by getSupportedAttributes()
 
 	Notes: 	Thank god this isn't SmartThings, or this would time out after about 10 subscriptions!
@@ -364,14 +355,14 @@ def subscribeLocalEvents()
 	state.customDrivers?.each
 	{
 	  groupname, driver ->
-		if (settings."custom_${groupname}"?.size()) getSupportedAttributes(groupname).each { subscribe(settings."custom_${groupname}", it, realtimeEventHandler) }	
+		if (settings."custom_${groupname}"?.size()) getSupportedAttributes(groupname).each { subscribe(settings."custom_${groupname}", it, realtimeEventHandler) }
 	}
 }
 
 
 /*
 	buttonEventTranslator
-    
+
 	Purpose: Translates SmartThings button events into Hubitat button events.
 */
 def buttonEventTranslator(evt)
@@ -383,7 +374,7 @@ def buttonEventTranslator(evt)
 
 /*
 	realtimeEventHandler
-    
+
 	Purpose: Event handler for all local device events.
 
 	URL Format: /device/localDeviceId/event/name/value/unit
@@ -402,7 +393,7 @@ def realtimeEventHandler(evt)
 		displayName:	evt.device.label ?: evt.device.name,
 		data:			evt.data
 	]
-	
+
 	def data = URLEncoder.encode(JsonOutput.toJson(event), "UTF-8")
 
 	if (enableDebug) log.debug "Sending event to server: ${evt.device?.label ?: evt.device?.name} [${evt.name}: ${evt.value} ${evt.unit}]"
@@ -412,7 +403,7 @@ def realtimeEventHandler(evt)
 
 /*
 	getAttributeMap
-    
+
 	Purpose: Returns a map of current attribute values for (device) with the device class (deviceType).
 
 	Notes: Calls getSupportedAttributes() to obtain list of attributes.
@@ -432,7 +423,7 @@ def getAttributeMap(device, deviceClass)
 
 /*
 	getSupportedAttributes
-    
+
 	Purpose: Returns a list of supported attribute values for the device class (deviceType).
 
 	Notes: Called from getAttributeMap().
@@ -447,7 +438,7 @@ def getSupportedAttributes(deviceClass)
 
 /*
 	realtimeModeChangeHandler
-    
+
 	URL Format: GET /modes/set/modeName
 
 	Purpose: Event handler for mode change events on the controller hub (this one).
@@ -464,7 +455,7 @@ def realtimeModeChangeHandler(evt)
 
 /*
 	realtimeHSMChangeHandler
-    
+
 	URL Format: GET /hsm/set/hsmStateName
 
 	Purpose: Event handler for HSM state change events on the controller hub (this one).
@@ -494,7 +485,7 @@ def realtimeHSMChangeHandler(evt)
 
 /*
 	saveDevicesToServer
-    
+
 	Purpose: Sends all of the devices selected (& current attribute values) from this hub to the controller hub.
 
 	URL Format: POST /devices/save
@@ -539,7 +530,7 @@ def saveDevicesToServer()
 
 /*
 	sendDeviceEvent
-    
+
 	Purpose: Send an event to a client device.
 
 	URL format: GET /event/:deviceId/:deviceCommand/:commandParams
@@ -559,7 +550,7 @@ def sendDeviceEvent(deviceId, deviceCommand, List commandParams=[])
 
 /*
 	deviceEvent
-    
+
 	Purpose: Handler for events received from physical devices on remote hubs.
 
 	URL Format: (GET) /device/:deviceId/event/:event
@@ -588,7 +579,7 @@ def deviceEvent()
 
 /*
 	saveDevices
-    
+
 	Purpose: Save linked devices as received from the remote client hub.
 
 	URL Format: (POST) /devices/save
@@ -596,7 +587,7 @@ def deviceEvent()
 	Notes: 	Since this is SmartThings, lets hope it does not time out after creating three devices!
 */
 def saveDevices()
-{	
+{
 	// Find the device class
 	if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
 	{
@@ -611,7 +602,7 @@ def saveDevices()
 	else if (state.customDrivers.find {it.key == request.JSON.deviceclass})
 	{
 		// Get the custom device type and create the devices
-		request.JSON.devices.each { createLinkedChildDevice(it, "${state.customDrivers[request.JSON.deviceclass].driver}") }		
+		request.JSON.devices.each { createLinkedChildDevice(it, "${state.customDrivers[request.JSON.deviceclass].driver}") }
 	}
 
 	jsonResponse([status: "complete"])
@@ -620,8 +611,8 @@ def saveDevices()
 
 /*
 	createLinkedChildDevice
-    
-	Purpose: Helper function to create child devices. 
+
+	Purpose: Helper function to create child devices.
 
 	Notes: 	Called from saveDevices()
 */
@@ -662,7 +653,7 @@ private createLinkedChildDevice(dev, driverType)
 
 /*
 	syncDevice
-    
+
 	Purpose: Sync device details with the physcial device by requeting an update of all attribute values from the remote hub.
 
 	Notes: CALLED FROM CHILD DEVICE
@@ -681,7 +672,7 @@ def syncDevice(deviceId, deviceType)
 		if (data?.status == "success")
 		{
 			childDevice.setLabel(data.label)
-			
+
 			data?.currentValues.each
 			{
 			  attr ->
@@ -694,7 +685,7 @@ def syncDevice(deviceId, deviceType)
 
 /*
 	httpGetWithReturn
-    
+
 	Purpose: Helper function to format GET requests with the proper oAuth token.
 
 	Notes: 	Command is absolute and must begin with '/'
@@ -713,25 +704,34 @@ def httpGetWithReturn(command)
 			Authorization: "Bearer ${state.clientToken}"
 		]
 	]
-    
-	httpGet(requestParams)
+
+	try
 	{
-	  response ->
-		if (response?.status == 200)
+		httpGet(requestParams)
 		{
-			return response.data
+		  response ->
+			if (response?.status == 200)
+			{
+				return response.data
+			}
+			else
+			{
+				log.error "httpGet() request failed with error ${response?.status}"
+				return [status: "error", message: "httpGet() request failed with status code ${response?.status}"]
+			}
 		}
-		else
-		{
-			log.error "httpGet() request failed with error ${response?.status}"
-		}
+	}
+	catch (Exception e)
+	{
+		log.error "httpGet() failed with error ${e.message}"
+		return [status: "error", message: e.message]
 	}
 }
 
 
 /*
 	sendGetCommand
-    
+
 	Purpose: Helper function to format GET requests with the proper oAuth token.
 
 	Notes: 	Executes async http request and does not return data.
@@ -749,17 +749,24 @@ def sendGetCommand(command)
 			Authorization: "Bearer ${state.clientToken}"
 		]
 	]
-    
-	asynchttp_v1.get("asyncHTTPHandler", requestParams)
+
+	try
+	{
+		asynchttp_v1.get((enableDebug ? "asyncHTTPHandler" : null), requestParams)
+	}
+	catch (Exception e)
+	{
+		log.error "asynchttpGet() failed with error ${e.message}"
+	}
 }
 
 
 /*
 	asyncHTTPHandler
-    
+
 	Purpose: Helper function to handle returned data from asyncHttpGet.
 
-	Notes: 	Does not return data, only logs errors.
+	Notes: 	Does not return data, only logs errors when debugging is enabled.
 */
 def asyncHTTPHandler(response, data)
 {
@@ -772,7 +779,7 @@ def asyncHTTPHandler(response, data)
 
 /*
 	sendPostCommand
-    
+
 	Purpose: Helper function to format POST requests with the proper oAuth token.
 
 	Notes: 	Returns JSON Map if successful.
@@ -788,24 +795,32 @@ def sendPostCommand(command, data)
 		body: data
 	]
 
-	httpPostJson(requestParams)
+	try
 	{
-	  response ->
-		if (response?.status == 200)
+		httpPostJson(requestParams)
 		{
-			return response.data
+		  response ->
+			if (response?.status == 200)
+			{
+				return response.data
+			}
+			else
+			{
+				log.error "httpPost() request failed with error ${response?.status}"
+			}
 		}
-		else
-		{
-			log.error "httpPost() request failed with error ${response?.status}"
-		}
+	}
+	catch (Exception e)
+	{
+		log.error "httpPostJson() failed with error ${e.message}"
+		return [status: "error", message: e.message]
 	}
 }
 
 
 /*
 	appHealth
-    
+
 	Purpose: Checks in with the controller hub every 1 minute.
 
 	URL Format: /ping
@@ -822,7 +837,7 @@ def appHealth()
 
 /*
 	setCommStatus
-    
+
 	Purpose: Event handler which disables events communications between hubs.
 
 	Notes: 	This is useful if the coordinator has to be rebooted to prevent HTTP errors on the remote hubs.
@@ -837,7 +852,7 @@ def setCommStatus()
 
 /*
 	getAllModes
-    
+
 	Purpose: Returns a list of all configured modes.
 
 	URL Format: (GET) /modes/get
@@ -851,8 +866,23 @@ def getAllModes()
 
 
 /*
+	getAllHSMStates
+
+	Purpose: Returns a map of all Smart Home Monitor states and current state on the remote hub.
+
+	URL Format: GET /hsm/get
+
+	Notes: Called from HTTP request on the remote hub.
+*/
+def getAllHSMStates()
+{
+	jsonResponse(hsmSetArm: ["armHome", "armNight", "off"], hsmStatus: location.currentState("alarmSystemStatus")?.value)
+}
+
+
+/*
 	saveCustomDrivers
-    
+
 	Purpose: Saves custom drivers defined in server app to this client instance
 
 	Notes: Sent from server hub.
@@ -884,7 +914,7 @@ def saveCustomDrivers()
 
 /*
 	installed
-    
+
 	Purpose: Standard install function.
 
 	Notes: Doesn't do much.
@@ -893,16 +923,16 @@ def installed()
 {
 	log.info "${app.name} Installed"
 
+	state.saveDevices = false
+	state.installedVersion = appVersion
+
 	initialize()
-	
-	state.appInstalled = true
-	state.connected = false
 }
 
 
 /*
 	updated
-    
+
 	Purpose: Standard update function.
 
 	Notes: Still doesn't do much.
@@ -917,15 +947,14 @@ def updated()
 	}
 
 	initialize()
-	state.appInstalled = true
-	state.connected = isConnected
+	state.installedVersion = appVersion
 }
 def remoteUpdate(params) { updated(); jsonResponse([status: "success"]) }
 
 
 /*
 	initialize
-    
+
 	Purpose: Initialize the server instance.
 
 	Notes: Parses the oAuth link into the token and base URL.  A real token exchange would obviate the need for this.
@@ -936,7 +965,7 @@ def initialize()
 	unschedule()
 
    	state.commDisabled = false
-    
+
 	if (isConnected)
 	{
 		saveDevicesToServer()
@@ -945,14 +974,14 @@ def initialize()
 		if (pushHSM) subscribe(location, "alarmSystemStatus", realtimeHSMChangeHandler)
 		runEvery1Minute("appHealth")
 	}
-    
+
 	state.saveDevices = false
 }
 
 
 /*
 	jsonResponse
-    
+
 	Purpose: Helper function to render JSON responses
 */
 def jsonResponse(respMap)
@@ -962,14 +991,33 @@ def jsonResponse(respMap)
 
 
 /*
+	getDevicePageStatus
+
+	Purpose: Helper function to set flags for configured devices.
+*/
+def getDevicePageStatus()
+{
+	def status = [:]
+	NATIVE_DEVICES.each
+	{  groupname, device ->
+		status["${device.prefGroup}"] = status["${device.prefGroup}"] != null ?: settings?."${device.selector}"?.size()
+	}
+	status["all"] = status.find{it.value == true} ? true : null
+	status
+}
+
+
+/*
 	mainPage
-    
+
 	Purpose: Displays the main (landing) page.
 
 	Notes: 	Not very exciting.
 */
 def mainPage()
 {
+	if (isConnected && state.installedVersion != appVersion) return upgradePage()
+
 	dynamicPage(name: "mainPage", uninstall: true, install: true)
 	{
 		section("-= Main Menu=-")
@@ -977,7 +1025,7 @@ def mainPage()
 			href "connectPage", title: "Connect to Server Hub...", description: "", state: isConnected ? "complete" : null
 			if (isConnected)
 			{
-				href "devicePage", title: "Select devices to synchronize to Server hub...", description: ""
+				if (isConnected) href "devicePage", title: "Select devices to synchronize to Server hub...", description: "", state: devicePageStatus.all ? "complete" : null
 				href "shmConfigPage", title: "Configure SHM to HSM mapping...", description: "", state: (armAway != null || armHome != null || armNight != null) ? "complete" : null
 				input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
 				input "pushHSM", "bool", title: "Send HSM changes to Server Hub?", description: "", defaultValue: false
@@ -996,8 +1044,25 @@ def mainPage()
 
 
 /*
+	upgradePage
+
+	Purpose: Displays the splash page to force users to initialize the app after an upgrade.
+*/
+def upgradePage()
+{
+	dynamicPage(name: "upgradePage", uninstall: false, install: true)
+	{
+		section("New Version Detected!")
+		{
+			paragraph "This HubConnect Remote Client has an upgrade that has been installed... \n\n Please click [Save] to complete the installation."
+		}
+	}
+}
+
+
+/*
 	connectPage
-    
+
 	Purpose: Displays the local & remote oAuth links.
 
 	Notes: 	Really should create a proper token exchange someday.
@@ -1030,7 +1095,7 @@ def connectPage()
 			state.clientURI = accessData.uri
 			state.clientToken = accessData.token
 			state.clientType = accessData.type
-			
+
 			// Send our connect string to the coordinator
 			def connectKey = new groovy.json.JsonBuilder([uri: apiServerUrl("/api/smartapps/installations/${app.id}"), type: "remote", token: state.accessToken, mac: location.hubs[0].id]).toString().bytes.encodeBase64()
 			def response = httpGetWithReturn("/connect/${connectKey}")
@@ -1061,11 +1126,11 @@ def connectPage()
 			app.updateSetting("disconnectHub", [type: "bool", value: false])
 		}
 	}
-    
+
 	dynamicPage(name: "connectPage", uninstall: false, install: false)
 	{
 		section("Server Details")
-		{ 
+		{
 			input "serverIP", "string", title: "Local LAN IP Address of the Server Hub:", required: false, defaultValue: null, submitOnChange: true
 			if (serverIP) input "serverKey", "string", title: "Paste the server connection key here:", required: false, defaultValue: null, submitOnChange: true
 		}
@@ -1084,57 +1149,49 @@ def connectPage()
 
 /*
 	devicePage
-    
+
 	Purpose: Displays the page where devices are selected to be linked to the controller hub.
 
 	Notes: 	Really could stand to be better organized.
 */
 def devicePage()
 {
-	def sensorsPageCount = genericContacts?.size() ?: genericMultipurposes?.size() ?: genericOmnipurposes?.size() ?: genericMotions?.size() ?: irisV3Motions?.size() ?: domeMotions?.size() ?: genericShocks?.size()
-	def shackratsDriverPageCount = smartPlugs?.size() ?: zwaveRepeaters?.size()
-	def switchDimmerBulbPageCount = genericSwitches?.size() ?: genericDimmers?.size() ?: genericRGBs?.size() ?: pocketSockets?.size() ?: energyPlugs?.size() ?: powerMeters?.size()
-	def safetySecurityPageCount = genericSmokeCO?.size() ?: smartSmokeCO?.size() ?: genericMoistures?.size() ?: genericKeypads?.size() ?: genericLocks?.size() ?: genericSirens?.size()
-	def otherDevicePageCount = genericPresences?.size()?: smartThingsArrival?.size() ?: genericButtons?.size() ?: genericThermostats?.size() ?: genericValves?.size() ?: garageDoors?.size() ?: speechSynth?.size() ?: windowShades?.size() ?: audioVolume?.size() ?: mobileApp?.size()
-	def stCloudDevicesCount = arloProCameras?.size() ?: arloQCameras?.size() ?: ringDoorbellPros?.size()
-
 	def totalNativeDevices = 0
-	def requiredDrivers = []
+	def requiredDrivers = ""
 	NATIVE_DEVICES.each
 	{devicegroup, device ->
 		if (settings."${device.selector}"?.size())
 		{
 			totalNativeDevices += settings."${device.selector}"?.size()
-			requiredDrivers << "HubConnect ${device.driver}"
+			requiredDrivers += "\t${device.driver}\n"
 		}
 	}
 
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		///totalCustomDevices += settings."${device.selector}"?.size() ?: 0
-		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
+		totalCustomDevices += settings."${devicegroup}"?.size() ?: 0
 	}
-	
+
 	def totalDevices = totalNativeDevices + totalCustomDevices
 
 	dynamicPage(name: "devicePage", uninstall: false, install: false)
 	{
-		section("Select Devices to Link to Coordinator Hub  (${totalDevices} connected)")
-		{ 
-			href "sensorsPage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock", state: sensorsPageCount ? "complete" : null
-			href "shackratsDriverPage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: shackratsDriverPageCount ? "complete" : null
-			href "switchDimmerBulbPage", title: "Switches & Dimmers", description: "Switch, Dimmer, Bulb, Power Meters", state: switchDimmerBulbPageCount ? "complete" : null
-			href "safetySecurityPage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: safetySecurityPageCount ? "complete" : null
-			href "otherDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Window Shades", state: otherDevicePageCount ? "complete" : null
-			href "stCloudDevices", title: "SmartThings Cloud Devices", description: "Arlo Cameras, Ring Doorbells", state: stCloudDevicesCount ? "complete" : null
+		section("Select Devices to Link to Server Hub  (${totalDevices} connected)")
+		{
+			href "dynamicDevicePage", title: "Sensors", description: "Contact, Motion, Multipurpose, Omnipurpose, Shock, GV Connector", state: devicePageStatus.sensors ? "complete" : null, params: [prefGroup: "sensors", title: "Sensors"]
+			href "dynamicDevicePage", title: "Shackrat's Drivers", description: "Iris Smart Plug, Z-Wave Repeaters", state: devicePageStatus.shackrat ? "complete" : null, params: [prefGroup: "shackrat", title: "Shackrat's Drivers"]
+			href "dynamicDevicePage", title: "Switches, Dimmers, & Fans", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switches ? "complete" : null, params: [prefGroup: "switches", title: "Switches, Dimmers, & Fans"]
+			href "dynamicDevicePage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safety ? "complete" : null, params: [prefGroup: "safety", title: "Safety & Security"]
+			href "dynamicDevicePage", title: "SmartThings Devices", description: "Arlo Cameras, Ring Doorbells", state: devicePageStatus.smartthings ? "complete" : null, params: [prefGroup: "smartthings", title: "SmartThings-Specific Devices"]
+			href "dynamicDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Speech Synthesis, Window Shades", state: devicePageStatus.other ? "complete" : null, params: [prefGroup: "other", title: "Other Devices"]
 			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
 		}
 		if (requiredDrivers?.size())
 		{
 			section("-= Required Drivers =-")
 			{
-				paragraph "Please make sure the following native drivers are installed on the Remote hub before clicking \"Done\": ${requiredDrivers.toString()}" 
+				paragraph "Please make sure the following native drivers are installed on the Coordinator (master) hub before clicking \"Done\": \n${requiredDrivers}"
 			}
 		}
 	}
@@ -1142,242 +1199,46 @@ def devicePage()
 
 
 /*
-	sensorsPage
-    
-	Purpose: Displays the page where sensor-type (motion, contact, etc.) devices are selected to be linked to the controller hub.
+	dynamicDevicePage
 
-	Notes: 	First attempt at organization.
+	Purpose: Displays a device selection page.
 */
-def sensorsPage()
+def dynamicDevicePage(params)
 {
 	state.saveDevices = true
 
-	dynamicPage(name: "sensorsPage", uninstall: false, install: false)
+	dynamicPage(name: "dynamicDevicePage", title: params.title, uninstall: false, install: false)
 	{
-		section("-= Select Contact Sensors (${genericContacts?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericContacts", "capability.contactSensor", title: "Contact Sensors (contact):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Multipurpose Sensors (${genericMultipurposes?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericMultipurposes", "capability.accelerationSensor", title: "Contact Multipurpose (contact, acceleration, threeAxis):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Omnipurpose Sensors (${genericOmnipurposes?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericOmnipurposes", "capability.relativeHumidityMeasurement", title: "Generic Omni-Sensor (contact, temperature, humidity, illuminance):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Motion Sensors (${((genericMotions?.size() ?: 0) + (irisV3Motions?.size() ?: 0) + (domeMotions?.size() ?: 0)) ?: "0"} connected) =-")
-		{ 
-			input "genericMotions", "capability.motionSensor", title: "Motion Sensors (motion):", required: false, multiple: true, defaultValue: null
-			input "irisV3Motions", "capability.motionSensor", title: "Motion Sensors (motion, temperature, humidity):", required: false, multiple: true, defaultValue: null
-			input "domeMotions", "capability.motionSensor", title: "Motion Sensors (motion, temperature, illuminance):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Shock Sensors (${genericShocks?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericShocks", "capability.shockSensor", title: "Glass Break/Shock Sensors (shock):", required: false, multiple: true, defaultValue: null
+		NATIVE_DEVICES.each
+		{
+		  groupname, device ->
+			if (device.prefGroup == params.prefGroup)
+			{
+				section("-= Select ${device.driver} Devcies (${settings?."${device.selector}"?.size() ?: "0"} connected) =-")
+				{
+					def capability = device.capability.contains("device.") ? "" : "capability."
+					input "${device.selector}", "${capability}${device.capability}", title: "${device.driver}s ${device.attr}:", required: false, multiple: true, defaultValue: null
+
+					// Customizations
+					if (groupname == "irissmartplug")
+					{
+						input "sp_EnablePower", "bool", title: "Enable power meter reporting?", required: false, defaultValue: true
+						input "sp_EnableVolts", "bool", title: "Enable voltage reporting?", required: false, defaultValue: true
+					}
+					else if (groupname == "power")
+					{
+						input "pm_EnableVolts", "bool", title: "Enable voltage reporting?", required: false, defaultValue: true
+					}
+				}
+			}
 		}
 	}
 }
 
-
-/*
-	shackratsDriverPage
-    
-	Purpose: Displays the page where shackrat's custom device drivers (SmartPlug, Z-Wave Repeater) are selected to be linked to the controller hub.
-
-	Notes: 	First attempt at organization.
-*/
-def shackratsDriverPage()
-{
-	state.saveDevices = true
-
-	dynamicPage(name: "shackratsDriverPage", uninstall: false, install: false)
-	{
-		section("-= Select Smart Plug Devices (${smartPlugs?.size() ?: "0"} connected) =-")
-		{ 
-			input "smartPlugs", "device.IrisSmartPlug", title: "Iris Smart Plugs (switch, power, voltage):", required: false, multiple: true, defaultValue: null
-			input "sp_EnablePower", "bool", title: "Enable power meter (W) reporting?", required: false, defaultValue: true
-			input "sp_EnableVolts", "bool", title: "Enable voltage (V) reporting?", required: false, defaultValue: true
-		}
-		section("-= Select Z-Wave Plus Repeater Devices (${zwaveRepeaters?.size() ?: "0"} connected) =-")
-		{ 
-			input "zwaveRepeaters", "device.IrisZ-WaveRepeater", title: "Z-Wave Repeaters (status):", required: false, multiple: true, defaultValue: null
-		}
-	}
-}
-
-
-/*
-	switchDimmerBulbPage
-    
-	Purpose: Displays the page where switches, dimmers, bulbs, and power meters are selected to be linked to the controller hub.
-
-	Notes: 	First attempt at organization.
-*/
-def switchDimmerBulbPage()
-{
-	state.saveDevices = true
-
-	dynamicPage(name: "switchDimmerBulbPage", uninstall: false, install: false)
-	{
-		section("-= Select Switch Devices (${genericSwitches?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericSwitches", "capability.switch", title: "Generic Switches (switch):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Dimmer Devices (${genericDimmers?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericDimmers", "capability.switchLevel", title: "Generic Dimmers (switch, level):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select RGB Bulbs (${genericRGBs?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericRGBs", "capability.colorControl", title: "Generic RGB Bulbs (switch, level, hue, saturation):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Zigbee Plugs/Pocket Sockets (${pocketSockets?.size() ?: "0"} connected) =-")
-		{ 
-			input "pocketSockets", "capability.switch", title: "Pocket Sockets (switch, power):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Smart Plug Devices (${energyPlugs?.size() ?: "0"} connected) =- ")
-		{ 
-			input "energyPlugs", "capability.energyMeter", title: "Aeon/Dome Smart Plugs (switch, power, voltage, energy, acceleration, current):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Power Meter Devices (${powerMeters?.size() ?: "0"} connected) =-")
-		{ 
-			input "powerMeters", "capability.powerMeter", title: "Power Meter Devices (power, voltage):", required: false, multiple: true, defaultValue: null
-			input "pm_EnableVolts", "bool", title: "Enable voltage reporting?", required: false, defaultValue: true
-		}
-	}
-}
-
-
-/*
-	safetySecurityPage
-    
-	Purpose: Displays the page where safety & security devices (smoke, carbonMonoxide, sirens, etc.) are selected to be linked to the controller hub.
-
-	Notes: 	First attempt at organization.
-*/
-def safetySecurityPage()
-{
-	state.saveDevices = true
-
-	dynamicPage(name: "safetySecurityPage", uninstall: false, install: false)
-	{
-		section("-= Select Smoke and CO Detectors (${genericSmokeCO?.size() ?: "0"} connected) =-")
-		{
-			input "genericSmokeCO", "capability.smokeDetector", title: "Smoke and CO Detectors (smoke, carbonMonoxide):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Smart Smoke and CO Detectors (${smartSmokeCO?.size() ?: "0"} connected) =-")
-		{
-			input "smartSmokeCO", "device.HaloSmokeAlarm", title: "Halo Smoke and CO Detectors (smoke, carbonMonoxide, temperature, humidity, switch, level, pressure):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Moisture Sensors (${genericMoistures?.size() ?: "0"} connected) =-")
-		{
-			input "genericMoistures", "capability.waterSensor", title: "Moisture Sensors (water):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Keypads (${genericKeypads?.size() ?: "0"} connected) =-")
-		{
-			input "genericKeypads", "capability.securityKeypad", title: "Keypads (motion, temperature, tamper, alarm):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Locks (${genericLocks?.size() ?: "0"} connected) =-")
-		{
-			input "genericLocks", "capability.lock", title: "Locks (lock):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Sirens (${genericSirens?.size() ?: "0"} connected) =-")
-		{
-			input "genericSirens", "capability.alarm", title: "Sirens (switch, alarm):", required: false, multiple: true, defaultValue: null
-		}
-	}
-}
-
-
-/*
-	otherDevicePage
-    
-	Purpose: Displays the page where other devices (presence, valves, etc.) are selected to be linked to the controller hub.
-
-	Notes: 	First attempt at organization.
-*/
-def otherDevicePage()
-{
-	state.saveDevices = true
-
-	dynamicPage(name: "otherDevicePage", uninstall: false, install: false)
-	{
-		section("-= Select SmartThings Arrival Sensors (${smartThingsArrival?.size() ?: "0"} connected) =-")
-		{
-			input "smartThingsArrival", "capability.presenceSensor", title: "SmartThings Arrival Sensors (presence, tone):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Presence Sensors (${genericPresences?.size() ?: "0"} connected) =-")
-		{
-			input "genericPresences", "capability.presenceSensor", title: "Presence Sensors (presence, alarm):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Button Devices (${genericButtons?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericButtons", "capability.button", title: "Buttons (pushed, held):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Thermostat Devices (${genericThermostats?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericThermostats", "capability.thermostat", title: "Thermostats (coolingSetpoint, heatingSetpoint, schedule, supportedThermostatFanModes, supportedThermostatModes, temperature, thermostatFanMode, thermostatMode, thermostatOperatingState, thermostatSetpoint):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Water Valve Devices (${genericValves?.size() ?: "0"} connected) =-")
-		{ 
-			input "genericValves", "capability.valve", title: "Water Valves (valve):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Garage Doors (${garageDoors?.size() ?: "0"} connected) =-")
-		{
-			input "garageDoors", "capability.garageDoorControl", title: "Garage Doors (door):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select SpeechSynthesis (${speechSynth?.size() ?: "0"} connected) =-")
-		{
-			input "speechSynth", "capability.speechSynthesis", title: "SpeechSynthesis:", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Window Shades (${windowShades?.size() ?: "0"} connected) =-")
-		{
-			input "windowShades", "capability.windowShade", title: "Window Shades:", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Audio Receivers (${audioVolume?.size() ?: "0"} connected) =-")
-		{
-			input "audioVolume", "capability.audioVolume", title: "Audio Receivers:", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Select Hubitat Mobile App device (${mobileApp?.size() ?: "0"} connected) =-")
-		{
-			input "mobileApp", "capability.notification", title: "Mobile Apps:", required: false, multiple: true, defaultValue: null
-		}
-	}
-}
-
-
-/*
-	stCloudDevices
-    
-	Purpose: Displays the page where SmartThings-specific cloud devices are selected to be linked to the controller hub.
-
-	Notes: 	First attempt at organization.
-*/
-def stCloudDevices()
-{
-	state.saveDevices = true
-
-	dynamicPage(name: "stCloudDevices", uninstall: false, install: false)
-	{
-		section("-= Arlo Pro Cameras =-")
-		{
-			input "arloProCameras", "device.ArloProCamera", title: "Arlo Cameras (switch, motion, battery):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Arlo Q Cameras =-")
-		{
-			input "arloQCameras", "device.ArloQCamera", title: "Arlo Cameras (switch, motion, battery):", required: false, multiple: true, defaultValue: null
-		}
-		section("-= Ring Doorbell Pros =-")
-		{
-			input "ringDoorbellPros", "device.RingDoorbellPro", title: "Ring Doorbell Pros (pushed, motion):", required: false, multiple: true, defaultValue: null
-		}
-	}
-}
 
 /*
 	customDevicePage
-    
+
 	Purpose: Displays the page where custom (user-defined) devices are selected to be linked to the controller hub.
 
 	Notes: 	First attempt at remotely defined device definitions.
@@ -1403,7 +1264,7 @@ def customDevicePage()
 
 /*
 	shmConfigPage
-    
+
 	Purpose: Configures HSM to SHM Mappings.
 
 	Notes: 	Not very exciting.
@@ -1415,8 +1276,8 @@ def shmConfigPage()
 	{
 		section("-= SHM to HSM Mode Mapping =-")
 		{
-			input "armAway",  "enum", title: "Set HSM to this mode when HSM changes to armAway", options: shmStates, description: "", defaultValue: "away"
-			input "armHome",  "enum", title: "Set HSM to this mode when HSM changes to armHome", options: shmStates, description: "", defaultValue: "off"
+			input "armAway", "enum", title: "Set HSM to this mode when HSM changes to armAway", options: shmStates, description: "", defaultValue: "away"
+			input "armHome", "enum", title: "Set HSM to this mode when HSM changes to armHome", options: shmStates, description: "", defaultValue: "off"
 			input "armNight", "enum", title: "Set HSM to this mode when HSM changes to armNight", options: shmStates, description: "", defaultValue: "stay"
 		}
 	}
@@ -1442,6 +1303,59 @@ def getVersions()
 	jsonResponse([apps: [[appName: app.label, appVersion: appVersion]], drivers: remoteDrivers])
 }
 
+
+/*
+	getTSReport
+
+	URL Format: (GET) /system/tsreport/get
+
+	Purpose: Returns a technical support report for this remote client.
+*/
+def getTSReport()
+{
+	jsonResponse([
+		app: [
+			appId: app.id,
+			appVersion: getAppVersion().toString(),
+			installedVersion: state.installedVersion
+		],
+		prefs: [
+			thisClientName: thisClientName,
+			serverKey: serverKey,
+			pushModes: pushModes,
+			pushHSM: pushHSM,
+			enableDebug: enableDebug,
+		],
+		state: [
+			clientURI: state?.clientURI,
+			connectionType: state.connectionType,
+			customDrivers: state.customDrivers,
+			commDisabled: state.commDisabled
+		],
+		devices: [
+			incomingDevices: getChildDevices()?.size() - (hubDevice != null ? 1 : 0),
+			deviceIdList: "N/A"
+		],
+		hub: [
+			deviceStatus: "N/A",
+			connectionType: "http",
+			eventSocketStatus:  "N/A",
+			hsmStatus:  "N/A",
+			modeStatus:  "N/A",
+			presence:  "N/A",
+			switch:  "N/A",
+			version:  "N/A",
+			subscribedDevices:  "N/A",
+			connectionAttempts:  "N/A",
+			refreshSocket:  "N/A",
+			refreshHour:  "N/A",
+			refreshMinute: "N/A",
+			hardwareID: location?.hubs[0]?.getType(),
+			firmwareVersion: location?.hubs[0]?.firmwareVersionString,
+			localIP: location?.hubs[0]?.getLocalIP()
+		]
+	])
+}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 4, build: 6008]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 5, build: 0]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}
