@@ -561,7 +561,7 @@ def deviceEvent()
 	// We can do this faster if we don't need info on the device
 	if (state.deviceIdList.contains(params.deviceId))
 	{
-		sendEvent("${clientIP}:${params.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) unit, descriptionText: "${event?.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: true, data: data])
+		sendEvent("${serverIP}:${params.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) unit, descriptionText: "${event?.displayName} ${event.name} is ${event.value} ${unit}", isStateChange: true, data: data])
 		if (enableDebug) log.info "Received event from server/${event.displayName}: [${event.name}, ${event.value} ${unit}]"
 		return jsonResponse([status: "complete"])
 	}
@@ -1476,5 +1476,5 @@ def getTSReport()
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "serverhub-${serverIP}"} ?: null}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
