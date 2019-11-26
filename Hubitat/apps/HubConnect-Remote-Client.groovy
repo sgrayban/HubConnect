@@ -202,7 +202,7 @@ def getDevice(params)
 		{
 	 	  groupname, device ->
 			if (foundDevice != null) return
-			foundDevice = settings."custom_${device.selector}".find{it.id == params.deviceId}
+			foundDevice = settings."custom_${groupname}".find{it.id == params.deviceId}
 		}
 	}
 	return foundDevice
@@ -1287,7 +1287,7 @@ def devicePage()
 	def totalCustomDevices = 0
 	state.customDrivers?.each
 	{devicegroup, device ->
-		totalCustomDevices += settings."${device.selector}"?.size() ?: 0
+		totalCustomDevices += settings."custom_${devicegroup}"?.size() ?: 0
 	}
 
 	def totalDevices = totalNativeDevices + totalCustomDevices
@@ -1476,5 +1476,5 @@ def getTSReport()
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "serverhub-${serverIP}"} ?: null}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 2]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
