@@ -43,6 +43,7 @@ preferences
 	page(name: "devicePage")
 	page(name: "customDevicePage")
 	page(name: "dynamicDevicePage")
+	page(name: "uninstallPage")
 }
 
 
@@ -499,7 +500,7 @@ def getDevice(params)
 */
 def remoteDeviceCommand()
 {
-	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : []
 
 	// Get the device
 	def device = getDevice(params)
@@ -926,6 +927,7 @@ def getDevicePageStatus()
 */
 def mainPage()
 {
+	app.updateSetting("removeDevices", [type: "bool", value: false])
 	if (settings?.clientName && app.label == "")
 	{
 		app.updateLabel(clientName)
@@ -933,7 +935,7 @@ def mainPage()
 
 	if (state.clientURI != null && state.installedVersion != appVersion) return upgradePage()
 
-	dynamicPage(name: "mainPage", title: app.label, uninstall: true, install: true)
+	dynamicPage(name: "mainPage", title: app.label, uninstall: false, install: true)
 	{
 		section(menuHeader("Connect"))
 		{
@@ -941,6 +943,7 @@ def mainPage()
 			if (state.clientURI)
 			{
 				href "devicePage", title: "Connect local devices to Remote Hub...", description: "", state: devicePageStatus.all ? "complete" : null
+				href "uninstallPage", title: "Disconnect Remote Hub &amp; remove this instance...", description: "", state: null
 			}
 		}
 		section(menuHeader("Modes"))
@@ -957,9 +960,10 @@ def mainPage()
 			paragraph "Synchronize HSM status from this remote (client) hub to the Server hub."
 			input "receiveHSM", "bool", title: "Receive HSM changes from Remote Hub?", description: "", defaultValue: false
 		}
-		section(menuHeader("Debug"))
+		section(menuHeader("Admin"))
 		{
 			input "enableDebug", "bool", title: "Enable debug output?", required: false, defaultValue: false
+			if (state.clientURI) href "uninstallPage", title: "Disconnect Remote Hub &amp; remove this instance...", description: "", state: null
 		}
 		section()
 		{
@@ -1000,8 +1004,7 @@ def connectPage()
 		createAccessToken()
 	}
 
-	def connectString = getConnectString()//remoteType ? new groovy.json.JsonBuilder([uri: (remoteType == "local" || remoteType == "homebridge") ? getFullLocalApiServerUrl() : getFullApiServerUrl(), type: remoteType, token: state.accessToken, connectionType: localConnectionType ?: ""]).toString().bytes.encodeBase64() : ""
-
+	def connectString = getConnectString()
 	dynamicPage(name: "connectPage", uninstall: false, install: false)
 	{
 		section(menuHeader("Client Details"))
@@ -1053,6 +1056,33 @@ def connectRemoteHub()
 	state.clientMac = accessData.mac
 
 	jsonResponse([status: "success"])
+}
+
+
+/*
+	uninstallPage
+
+	Purpose: Displays options for removing an instance.
+
+	Notes: 	Really should create a proper token exchange someday.
+*/
+def uninstallPage()
+{
+	dynamicPage(name: "uninstallPage", title: "Uninstall HubConnect", uninstall: true, install: false)
+	{
+		section(menuHeader("Warning!"))
+		{
+			paragraph "It is strongly recommended to back up your hub before proceeding. This action cannot be undone!\n\nClick the [Remove] button below to disconnect and remove this instance."
+		}
+		section(menuHeader("Options"))
+		{
+			input "removeDevices", "bool", title: "Remove virtual HubConnect shadow devices on this hub?", required: false, defaultValue: false, submitOnChange: true
+		}
+		section()
+		{
+			href "mainPage", title: "Cancel and return to the main menu..", description: "", state: null
+		}
+	}
 }
 
 
@@ -1321,6 +1351,25 @@ def updated()
 
 
 /*
+	uninstalled
+
+	Purpose: Standard uninstall function.
+
+	Notes: Tries to clean up just in case Hubitat misses something.
+*/
+def uninstalled()
+{
+	// Remove virtual hub device
+	if (hubDevice != null) deleteChildDevice("hub-${clientIP}")
+
+	// Remove all devices if not explicity told to keep.
+	if (removeDevices) childDevices.each { deleteChildDevice(it.deviceNetworkId) }
+
+	log.info "HubConnect server instance has been uninstalled."
+}
+
+
+/*
 	initialize
 
 	Purpose: Initialize the server instance.
@@ -1521,5 +1570,5 @@ def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;colo
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"} ?: null}
 def getConnectString() {remoteType ? new groovy.json.JsonBuilder([uri: (remoteType == "local" || remoteType == "homebridge") ? getFullLocalApiServerUrl() : getFullApiServerUrl(), type: remoteType, token: state.accessToken, connectionType: localConnectionType ?: ""]).toString().bytes.encodeBase64() : ""}
 def getAppHealthStatus() {state.connectStatus}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 3]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

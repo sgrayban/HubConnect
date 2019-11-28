@@ -219,7 +219,7 @@ def getDevice(params)
 */
 def remoteDeviceCommand()
 {
-	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : null
+	def commandParams = params.commandParams != "null" ? parseJson(URLDecoder.decode(params.commandParams)) : []
 
 	// Get the device
 	def device = getDevice(params)
@@ -1357,5 +1357,5 @@ def getTSReport()
 	])
 }
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 5, build: 0]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 5, build: 3]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

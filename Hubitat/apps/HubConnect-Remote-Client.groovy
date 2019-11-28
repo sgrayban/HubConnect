@@ -43,6 +43,7 @@ preferences
 	page(name: "devicePage")
 	page(name: "customDevicePage")
 	page(name: "dynamicDevicePage")
+	page(name: "uninstallPage")
 }
 
 
@@ -995,6 +996,25 @@ def remoteUpdate(params) { updated(); jsonResponse([status: "success"]) }
 
 
 /*
+	uninstalled
+
+	Purpose: Standard uninstall function.
+
+	Notes: Tries to clean up just in case Hubitat misses something.
+*/
+def uninstalled()
+{
+	// Remove virtual hub device
+	if (hubDevice != null) deleteChildDevice("hub-${clientIP}")
+
+	// Remove all devices if not explicity told to keep.
+	if (removeDevices) childDevices.each { deleteChildDevice(it.deviceNetworkId) }
+
+	log.info "HubConnect remote client has been uninstalled."
+}
+
+
+/*
 	initialize
 
 	Purpose: Initialize the server instance.
@@ -1127,8 +1147,8 @@ def getDevicePageStatus()
 def mainPage()
 {
 	if (isConnected && state.installedVersion != appVersion) return upgradePage()
-
-	dynamicPage(name: "mainPage", title: "${app.label}${state.commDisabled ? " <span style=\"color:orange\"> [Paused]</span>" : ""}", uninstall: true, install: true)
+	app.updateSetting("removeDevices", [type: "bool", value: false])
+	dynamicPage(name: "mainPage", title: "${app.label}${state.commDisabled ? " <span style=\"color:orange\"> [Paused]</span>" : ""}", uninstall: false, install: true)
 	{
 		section(menuHeader("Connect"))
 		{
@@ -1140,9 +1160,10 @@ def mainPage()
 			input "pushModes", "bool", title: "Push mode changes to Server Hub?", description: "", defaultValue: false
 			input "pushHSM", "bool", title: "Send HSM changes to Server Hub?", description: "", defaultValue: false
 		}
-		section(menuHeader("Debug Menu"))
+		section(menuHeader("Admin"))
 		{
 			input "enableDebug", "bool", title: "Enable debug output?", required: false, defaultValue: false
+			if (isConnected) href "uninstallPage", title: "Disconnect Server Hub &amp; remove this instance...", description: "", state: null
 		}
 		section()
 		{
@@ -1259,6 +1280,33 @@ def connectPage()
 				input "disconnectHub", "bool", title: "Disconnect Server Hub...", description: "This will erase the connection key.", required: false, submitOnChange: true
 			}
 			else paragraph "<b style=\"color:red\">Not Connected</b>${responseText}"
+		}
+	}
+}
+
+
+/*
+	uninstallPage
+
+	Purpose: Displays options for removing an instance.
+
+	Notes: 	Really should create a proper token exchange someday.
+*/
+def uninstallPage()
+{
+	dynamicPage(name: "uninstallPage", title: "Uninstall HubConnect Remote", uninstall: true, install: false)
+	{
+		section(menuHeader("Warning!"))
+		{
+			paragraph "It is strongly recommended to back up your hub before proceeding. This action cannot be undone!\n\nClick the [Remove] button below to disconnect and remove this remote."
+		}
+		section(menuHeader("Options"))
+		{
+			input "removeDevices", "bool", title: "Remove virtual HubConnect shadow devices on this hub?", required: false, defaultValue: false, submitOnChange: true
+		}
+		section()
+		{
+			href "mainPage", title: "Cancel and return to the main menu..", description: "", state: null
 		}
 	}
 }
@@ -1417,7 +1465,7 @@ def getVersions()
 	   device ->
 		if (remoteDrivers[device.typeName] == null) remoteDrivers[device.typeName] = device.getDriverVersion()
 	}
-	jsonResponse([apps: [[appName: app.label, appVersion: appVersion]], drivers: remoteDrivers])
+	jsonResponse([apps: [[appName: app.name, appVersion: appVersion]], drivers: remoteDrivers])
 }
 
 
@@ -1476,5 +1524,5 @@ def getTSReport()
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "serverhub-${serverIP}"} ?: null}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 2]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 3]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

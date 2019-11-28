@@ -49,6 +49,7 @@ preferences
 	page(name: "diagnosticReportPage")
 	page(name: "stubDriverPage")
 	page(name: "supportPage")
+	page(name: "uninstallPage")
 }
 
 
@@ -100,7 +101,7 @@ preferences
 def mainPage()
 {
 	if (state.serverInstalled && state.installedVersion != appVersion) return upgradePage()
-	dynamicPage(name: "mainPage", title: app.label, uninstall: true, install: true)
+	dynamicPage(name: "mainPage", title: app.label, uninstall: false, install: true)
 	{
 		if (state?.serverInstalled == null || state.serverInstalled == false)
 		{
@@ -437,6 +438,27 @@ def updated()
 
 
 /*
+	uninstalled
+
+	Purpose: Standard uninstall function.
+
+	Notes: Tries to clean up just in case Hubitat misses something.
+*/
+def uninstalled()
+{
+	log.info "HubConnect server has been uninstalled."
+
+	childApps.each
+	{
+	  child ->
+		child.updateSetting("removeDevices", [type: "bool", value: true])
+		child.uninstalled() // Just in case
+		app.deleteChildApp(child.id)
+	}
+}
+
+
+/*
 	initialize
 
 	Purpose: Initialize the server.
@@ -600,6 +622,10 @@ def utilitesPage(params)
 			if (params?.debug != null) paragraph "Debug has been ${params.debug ? "enabled" : "disabled"} for all hubs."
 			href "utilitesPage", title: "Enable debug logging for all instances?", description: "Click to enable", params: [debug: true]
 			href "utilitesPage", title: "Disable debug logging for all instances?", description: "Click to disable",  params: [debug: false]
+		}
+		section(menuHeader("Uninstall HubConnect"))
+		{
+			href "uninstallPage", title: "Uninstall HubConnect from this hub.", description: "", state: null
 		}
 		section()
 		{
@@ -1210,6 +1236,33 @@ def aboutPage()
 		{
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
 			paragraph "<span style=\"font-size:.8em\">Server Container  v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
+		}
+	}
+}
+
+
+/*
+	uninstallPage
+
+	Purpose: Displays options for removing an instance.
+
+	Notes: 	Really should create a proper token exchange someday.
+*/
+def uninstallPage()
+{
+	dynamicPage(name: "uninstallPage", title: "Uninstall HubConnect", uninstall: true, install: false)
+	{
+		section(menuHeader("Warning!"))
+		{
+			paragraph "It is strongly recommended to back up your hub before proceeding.\n\nThis will remove ALL HubConnect instances and devices from this hub!!!\n\nThis action cannot be undone!\n\nClick the [Remove] button below completely remove HubConnect."
+		}
+		section(menuHeader("Options"))
+		{
+			input "removeDevices", "bool", title: "Remove virtual HubConnect shadow devices on this hub?", required: false, defaultValue: true, submitOnChange: true
+		}
+		section()
+		{
+			href "mainPage", title: "Cancel and return to the main menu..", description: "", state: null
 		}
 	}
 }
