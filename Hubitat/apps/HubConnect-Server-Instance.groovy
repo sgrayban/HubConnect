@@ -940,11 +940,7 @@ def mainPage()
 		section(menuHeader("Connect"))
 		{
 			href "connectPage", title: "Connect to Remote Hub...", description: "", state: state.clientURI ? "complete" : null
-			if (state.clientURI)
-			{
-				href "devicePage", title: "Connect local devices to Remote Hub...", description: "", state: devicePageStatus.all ? "complete" : null
-				href "uninstallPage", title: "Disconnect Remote Hub &amp; remove this instance...", description: "", state: null
-			}
+			if (state.clientURI) href "devicePage", title: "Connect local devices to Remote Hub...", description: "", state: devicePageStatus.all ? "complete" : null
 		}
 		section(menuHeader("Modes"))
 		{
@@ -1380,6 +1376,41 @@ def initialize()
 {
 	log.info "${app.name} Initialized"
 
+	// Build a lookup table & update device IPs if necessary
+	def parts = []
+	state.deviceIdList = new HashSet<>()
+	childDevices.each
+	{
+		parts = it.deviceNetworkId.split(":")
+        if (parts?.size() > 1)
+		{
+			state.deviceIdList << (localConnectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
+			if (updateDeviceIPs) it.deviceNetworkId = "${clientIP}:${parts[1]}"
+		}
+	}
+	def connURI = state.clientURI.split(":")
+	def clientPort = connURI.size() > 2 ? connURI[2] : "80"
+	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
+	if (hubDevice)
+	{
+		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
+		hubDevice.updateDeviceIdList(state.deviceIdList)
+	}
+	else if (state.clientToken)
+	{
+		hubDevice = createHubChildDevice()
+		if (hubDevice == null)
+		{
+			// Failed to create device
+			log.error "HubConnect could not be initialized.  A remote hub device with a DNI of [hub-${clientIP}] was found.  Please manually remove this device before using HubConnect."
+			return
+		}
+		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
+		hubDevice.updateDeviceIdList(state.deviceIdList)
+	}
+
+	app.updateSetting("updateDeviceIPs", [type: "bool", value: false])
+
 	saveDevicesToClient()
 	subscribeLocalEvents()
 	if (pushModes) subscribe(location, "mode", realtimeModeChangeHandler)
@@ -1393,35 +1424,6 @@ def initialize()
 	state.connectStatus = "online"
 
 	state.commDisabled = false
-
-	// Build a lookup table & update device IPs if necessary
-	def parts = []
-	state.deviceIdList = new HashSet<>()
-	childDevices.each
-	{
-		parts = it.deviceNetworkId.split(":")
-        if (parts?.size() > 1)
-		{
-			state.deviceIdList << (localConnectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
-			if (updateDeviceIPs) it.deviceNetworkId = "${clientIP}:${parts[1]}"
-		}
-	}
-	app.updateSetting("updateDeviceIPs", [type: "bool", value: false])
-
-	def connURI = state.clientURI.split(":")
-	def clientPort = connURI.size() > 2 ? connURI[2] : "80"
-	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
-	if (hubDevice)
-	{
-		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
-		hubDevice.updateDeviceIdList(state.deviceIdList)
-	}
-	else if (state.clientToken)
-	{
-		hubDevice = createHubChildDevice()
-		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
-		hubDevice.updateDeviceIdList(state.deviceIdList)
-	}
 
 	app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
 	runEvery5Minutes("appHealth")
