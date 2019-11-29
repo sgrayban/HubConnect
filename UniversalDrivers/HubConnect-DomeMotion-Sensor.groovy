@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect Dome Motion Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-DomeMotion-Sensor.groovy")
+	definition(name: "HubConnect DomeMotion Sensor", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-DomeMotion-Sensor.groovy")
 	{
 		capability "Motion Sensor"
 		capability "Temperature Measurement"
@@ -99,4 +99,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "domemotion")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 5, build: 1]}
