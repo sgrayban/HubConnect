@@ -61,6 +61,7 @@ preferences
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", capability: "contactSensor", prefGroup: "sensors", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", capability: "switchLevel", prefGroup: "switches", attr: ["switch", "level"]],
 	"domemotion":		[driver: "DomeMotion Sensor", selector: "domeMotions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "illuminance", "battery"]],
+	"energy":			[driver: "Energy Meter", selector: "energyMeters", capability: "energyMeter", prefGroup: "switches", attr: ["energy"]],
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", capability: "energyMeter", prefGroup: "switches", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
 	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
 	"fanspeed":			[driver: "FanSpeed Controller", selector: "fanSpeedControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
@@ -133,6 +134,10 @@ mappings
     path("/system/versions/get")
 	{
 		action: [GET: "getVersions"]
+	}
+    path("/system/initialize")
+	{
+		action: [GET: "remoteInitialize"]
 	}
     path("/system/update")
 	{
@@ -497,6 +502,7 @@ def saveDevicesToServer()
 	if (state.saveDevices == false) return
 
 	// Fetch all devices and attributes for each device group and send them to the master.
+	List idList = []
 	NATIVE_DEVICES.each
 	{
 	  groupname, device ->
@@ -505,6 +511,7 @@ def saveDevicesToServer()
 		settings."${device.selector}".each
 		{
 			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
 		}
 		if (devices != [])
 		{
@@ -517,13 +524,20 @@ def saveDevicesToServer()
 	state.customDrivers.each
 	{
 	  groupname, driver ->
-		def customSel = settings?."custom_${groupname}"
-		if (customSel != null)
+
+		devices = []
+		settings?."custom_${groupname}"?.each
 		{
-			if (enableDebug) log.info "Sending custom devices to server..."
-			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
+			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
+		}
+		if (devices != [])
+		{
+			if (enableDebug) log.info "Sending custom devices to remote: ${groupname} - ${devices}"
+			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
+	if (cleanupDevices) sendPostCommand("/devices/save", [cleanupDevices: idList])
 	state.saveDevices = false
 }
 
@@ -588,8 +602,22 @@ def deviceEvent()
 */
 def saveDevices()
 {
+	// Device cleanup?
+	if (request?.JSON?.cleanupDevices != null)
+	{
+		childDevices.each
+		{
+		  child ->
+			if (child.deviceNetworkId != "serverhub-${serverIP}" && request.JSON.cleanupDevices.find{"${serverIP}:${it}" == child.deviceNetworkId} == null)
+			{
+				if (enableDebug) log.info "Deleting device ${child.label} as it is no longer shared with this hub."
+				deleteChildDevice(child.deviceNetworkId)
+			}
+		}
+	}
+
 	// Find the device class
-	if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
+	else if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
 	{
 		return jsonResponse([status: "error"])
 	}
@@ -891,15 +919,15 @@ def saveCustomDrivers()
 {
 	if (request?.JSON?.find{it.key == "customdrivers"})
 	{
-		// Clean up
+		// Clean up from deleted drivers
 		state.customDrivers.each
 		{
 	  	  key, driver ->
-			if (!request?.JSON?.customdrivers?.find{it == key})
+			if (request?.JSON?.customdrivers?.findAll{it.key == key}.size() == 0)
 			{
-				log.debug "Removing custom device selector: ${key}"
+				if (enableDebug) log.debug "Unsubscribing from events and removing device selector for ${key}"
 				unsubscribe(settings."custom_${key}")
-				app.deleteSetting("custom_${key}")
+				app.removeSetting("custom_${key}")
 			}
 		}
 		state.customDrivers = request.JSON.customdrivers
@@ -980,6 +1008,22 @@ def initialize()
 
 
 /*
+	remoteInitialize
+
+	Purpose: Allows the server to re-initialize this remote.
+
+	URL Format: (GET) /system/initialize
+
+	Notes: Called from HTTP request from server hub.
+*/
+def remoteInitialize()
+{
+	initialize()
+	jsonResponse([status: "success"])
+}
+
+
+/*
 	jsonResponse
 
 	Purpose: Helper function to render JSON responses
@@ -1002,6 +1046,14 @@ def getDevicePageStatus()
 	{  groupname, device ->
 		status["${device.prefGroup}"] = status["${device.prefGroup}"] != null ?: settings?."${device.selector}"?.size()
 	}
+
+	// Custom defined device drivers
+	state.customDrivers.each
+	{
+	  groupname, driver ->
+		status["custom"] = status["custom"] != null ?: settings?."custom_${groupname}"?.size()
+	}
+
 	status["all"] = status.find{it.value == true} ? true : null
 	status
 }
@@ -1185,7 +1237,15 @@ def devicePage()
 			href "dynamicDevicePage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safety ? "complete" : null, params: [prefGroup: "safety", title: "Safety & Security"]
 			href "dynamicDevicePage", title: "SmartThings Devices", description: "Arlo Cameras, Ring Doorbells", state: devicePageStatus.smartthings ? "complete" : null, params: [prefGroup: "smartthings", title: "SmartThings-Specific Devices"]
 			href "dynamicDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Speech Synthesis, Window Shades", state: devicePageStatus.other ? "complete" : null, params: [prefGroup: "other", title: "Other Devices"]
-			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
+			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: devicePageStatus.custom ? "complete" : null
+		}
+		if (state.saveDevices)
+		{
+			section()
+			{
+				paragraph "Changes to remote devices will be saved on exit."
+				input "cleanupDevices", "bool", title: "Remove unused devices on the remote hub?", required: false, defaultValue: true
+			}
 		}
 		if (requiredDrivers?.size())
 		{
@@ -1357,5 +1417,5 @@ def getTSReport()
 	])
 }
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "SmartThings", major: 1, minor: 5, build: 3]}
+def getAppVersion() {[platform: "SmartThings", major: 1, minor: 6, build: 0]}
 def getAppCopyright(){"© 2019 Steve White, Retail Media Concepts LLC"}

@@ -59,6 +59,7 @@ preferences
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", capability: "contactSensor", prefGroup: "sensors", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", capability: "switchLevel", prefGroup: "switches", attr: ["switch", "level"]],
 	"domemotion":		[driver: "DomeMotion Sensor", selector: "domeMotions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "illuminance", "battery"]],
+	"energy":			[driver: "Energy Meter", selector: "energyMeters", capability: "energyMeter", prefGroup: "switches", attr: ["energy"]],
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", capability: "energyMeter", prefGroup: "switches", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
 	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
 	"fanspeed":			[driver: "FanSpeed Controller", selector: "fanSpeedControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
@@ -244,7 +245,7 @@ def deviceEvent()
 def wsSendEvent(Object event)
 {
 	// We can do this faster if we don't need info on the device, so defer that for logging
-	sendEvent("${clientIP}:${event.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) event.unit, descriptionText: (String) event.descriptionText, isStateChange: true])
+	sendEvent("${clientIP}:${event.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) event.unit, descriptionText: (String) event.descriptionText, isStateChange: event.isStateChange])
 	if (enableDebug) log.info "Received event from ${clientName}/${event.displayName}: [${event.name}, ${event.value} ${event.unit}]"
 }
 
@@ -263,7 +264,7 @@ def realtimeModeChangeHandler(evt)
 	if (enableDebug) log.debug "Sending mode change event to ${clientName}: ${evt.value}"
 	sendGetCommand("/modes/set/${URLEncoder.encode(evt.value)}")
 
-	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.sendEvent(name: "modeStatus", value: evt.value)
+	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"}?.sendEvent(name: "modeStatus", value: evt.value)
 }
 
 
@@ -296,7 +297,7 @@ def realtimeHSMChangeHandler(evt)
 */
 def realtimeHSMStatusHandler(evt)
 {
-	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.sendEvent(name: "hsmStatus", value: evt.value)
+	getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"}?.sendEvent(name: "hsmStatus", value: evt.value)
 }
 
 
@@ -327,8 +328,22 @@ def hsmSendAlert(hsmAlertText)
 */
 def saveDevices()
 {
+	// Device cleanup?
+	if (request?.JSON?.cleanupDevices != null)
+	{
+		childDevices.each
+		{
+		  child ->
+			if (child.deviceNetworkId != "hub-${clientIP}:${state.clientPort}" && request.JSON.cleanupDevices.find{"${clientIP}:${it}" == child.deviceNetworkId} == null)
+			{
+				if (enableDebug) log.info "Deleting device ${child.label} as it is no longer shared with this hub."
+				deleteChildDevice(child.deviceNetworkId)
+			}
+		}
+	}
+
 	// Find the device class
-	if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
+	else if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
 	{
 		return jsonResponse([status: "error"])
 	}
@@ -352,7 +367,7 @@ def saveDevices()
 		parts = it.deviceNetworkId.split(":")
 		if (parts?.size() > 1) state.deviceIdList << (localConnectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
 	}
-    getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.updateDeviceIdList(state.deviceIdList)
+    getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"}?.updateDeviceIdList(state.deviceIdList)
 
 	jsonResponse([status: "complete"])
 }
@@ -371,7 +386,7 @@ private createLinkedChildDevice(dev, driverType)
 	if (childDevice != null)
 	{
 		// Device exists
-		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
+		if (enableDebug) log.trace "${driverType} ${dev.label} (${childDevice.deviceNetworkId}) exists... Skipping creation.."
 		return
 	}
 	else
@@ -409,7 +424,7 @@ private createLinkedChildDevice(dev, driverType)
 */
 private createHubChildDevice()
 {
-	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
+	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"}
 	if (hubDevice != null)
 	{
 		// Hub exists
@@ -422,7 +437,7 @@ private createHubChildDevice()
 
 		try
 		{
-			hubDevice = addChildDevice("shackrat", "HubConnect Remote Hub", "hub-${clientIP}", null, [name: "HubConnect Hub", label: clientName])
+			hubDevice = addChildDevice("shackrat", "HubConnect Remote Hub", "hub-${clientIP}:${state.clientPort}", null, [name: "HubConnect Hub", label: clientName])
 		}
 		catch (errorException)
 		{
@@ -431,7 +446,7 @@ private createHubChildDevice()
 		}
 
 		// Set the value of the primary attributes
-		if (hubDevice != null) sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
+		if (hubDevice != null) sendEvent("hub-${clientIP}:${state.clientPort}", [name: "presence", value: "present"])
 	}
 
 	hubDevice
@@ -736,6 +751,7 @@ def saveDevicesToClient()
 	if (state.saveDevices == false) return
 
 	// Fetch all devices and attributes for each device group and send them to the master.
+	List idList = []
 	NATIVE_DEVICES.each
 	{
 	  groupname, device ->
@@ -743,12 +759,12 @@ def saveDevicesToClient()
 		def devices = []
 		settings."${device.selector}".each
 		{
-			log.debug getAttributeMap(it, groupname)
 			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
 		}
 		if (devices != [])
 		{
-			if (enableDebug) log.info "Sending devices to remote: ${groupname} - ${devices}"
+			if (enableDebug) "Sending devices to remote: ${groupname} - ${devices}"
 			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
@@ -757,13 +773,20 @@ def saveDevicesToClient()
 	state.customDrivers.each
 	{
 	  groupname, driver ->
-		def customSel = settings?."custom_${groupname}"
-		if (customSel != null)
+
+		devices = []
+		settings?."custom_${groupname}"?.each
 		{
-			if (enableDebug) log.info "Sending custom devices to remote..."
-			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
+			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
+		}
+		if (devices != [])
+		{
+			if (enableDebug) log.info "Sending custom devices to remote: ${groupname} - ${devices}"
+			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
+	if (cleanupDevices) sendPostCommand("/devices/save", [cleanupDevices: idList])
 	state.saveDevices = false
 }
 
@@ -910,10 +933,19 @@ def getDevicePageStatus()
 {
 	def status = [:]
 	NATIVE_DEVICES.each
-	{  groupname, device ->
+	{
+	  groupname, device ->
 		status["${device.prefGroup}"] = status["${device.prefGroup}"] != null ?: settings?."${device.selector}"?.size()
 	}
-	status["all"] = status.find{it.value == true} ? true : null
+
+	// Custom defined device drivers
+	state.customDrivers.each
+	{
+	  groupname, driver ->
+		status["custom"] = status["custom"] != null ?: settings?."custom_${groupname}"?.size()
+	}
+
+	status["all"] = status.find{it.value} ? true : null
 	status
 }
 
@@ -1100,7 +1132,7 @@ def registerPing()
 		app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
 		log.info "${clientName} is online."
 
-		sendEvent("hub-${clientIP}", [name: "presence", value: "present"])
+		sendEvent("hub-${clientIP}:${state.clientPort}", [name: "presence", value: "present"])
 
 		// A little recovery for system mode, in case the hub coming online missed a mode change
 		if (pushModes)
@@ -1133,7 +1165,7 @@ def appHealth()
 		app.updateLabel(clientName + "<span style=\"color:red\"> Offline</span>")
 		log.error "${clientName} is offline."
 
-		sendEvent("hub-${clientIP}", [name: "presence", value: "not present"])
+		sendEvent("hub-${clientIP}:${state.clientPort}", [name: "presence", value: "not present"])
 	}
 	else if (state.lastCheckIn < (now() - 120000)) // 2 minutes - warning
 	{
@@ -1158,7 +1190,7 @@ def setCommStatus(commDisabled = false)
 	log.info "Setting event communication status from remote hub: [status: ${commDisabled ? "paused" : "online"}]"
 	state.commDisabled = commDisabled
 	response = httpGetWithReturn("/system/setCommStatus/${commDisabled}")
-	sendEvent("hub-${clientIP}", [name: "switch", value: response.switch])
+	sendEvent("hub-${clientIP}:${state.clientPort}", [name: "switch", value: response.switch])
 	app.updateLabel(clientName + (commDisabled ? "<span style=\"color:orange\"> Paused</span>" : "<span style=\"color:green\"> Online</span>"))
 }
 
@@ -1291,6 +1323,18 @@ def getAllVersions()
 */
 def saveCustomDrivers(customDrivers)
 {
+	// Clean up from deleted drivers
+	state.customDrivers.each
+	{
+  	  key, driver ->
+		if (customDrivers?.findAll{it.key == key}.size() == 0)
+		{
+			if (enableDebug) log.debug "Unsubscribing from events and removing device selector for ${key}"
+			unsubscribe(settings."custom_${key}")
+			app.removeSetting("custom_${key}")
+		}
+	}
+
 	state.customDrivers = customDrivers
 	sendPostCommand("/system/drivers/save", [customdrivers: customDrivers])
 }
@@ -1339,6 +1383,16 @@ def updated()
 	}
 
 	unsubscribe()
+	log.debug appVersion
+	// HC 1.6 DNI change for Homebridge
+	if (appVersion.major == 1 && appVersion.minor == 6)
+	{
+		log.debug "changing DNI"
+		def connURI = state.clientURI.split(":")
+		def clientPort = connURI.size() > 2 ? connURI[2] : "80"
+		getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}?.deviceNetworkId = "hub-${clientIP}:${clientPort}"
+	}
+
 	initialize()
 
 	sendGetCommand("/system/update")
@@ -1356,7 +1410,7 @@ def updated()
 def uninstalled()
 {
 	// Remove virtual hub device
-	if (hubDevice != null) deleteChildDevice("hub-${clientIP}")
+	if (hubDevice != null) deleteChildDevice("hub-${clientIP}:${clientPort}")
 
 	// Remove all devices if not explicity told to keep.
 	if (removeDevices) childDevices.each { deleteChildDevice(it.deviceNetworkId) }
@@ -1389,11 +1443,11 @@ def initialize()
 		}
 	}
 	def connURI = state.clientURI.split(":")
-	def clientPort = connURI.size() > 2 ? connURI[2] : "80"
-	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"}
+	state.clientPort = connURI.size() > 2 ? connURI[2] : "80"
+	def hubDevice = getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"}
 	if (hubDevice)
 	{
-		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
+		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, state.clientPort)
 		hubDevice.updateDeviceIdList(state.deviceIdList)
 	}
 	else if (state.clientToken)
@@ -1405,7 +1459,7 @@ def initialize()
 			log.error "HubConnect could not be initialized.  A remote hub device with a DNI of [hub-${clientIP}] was found.  Please manually remove this device before using HubConnect."
 			return
 		}
-		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, clientPort)
+		hubDevice.setConnectionType((remoteType == "local" || remoteType == "homebridge") && localConnectionType == "socket" ? "socket" : "http", clientIP, state.clientPort)
 		hubDevice.updateDeviceIdList(state.deviceIdList)
 	}
 
@@ -1427,6 +1481,19 @@ def initialize()
 
 	app.updateLabel(clientName + "<span style=\"color:green\"> Online</span>")
 	runEvery5Minutes("appHealth")
+}
+
+
+/*
+	remoteInitialize
+
+	Purpose: Allows the server to re-initialize this remote.
+
+	URL Format: GET /system/initialize
+*/
+def remoteInitialize()
+{
+	return httpGetWithReturn("/system/initialize")
 }
 
 
@@ -1478,7 +1545,15 @@ def devicePage()
 			href "dynamicDevicePage", title: "Switches, Dimmers, & Fans", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switches ? "complete" : null, params: [prefGroup: "switches", title: "Switches, Dimmers, & Fans"]
 			href "dynamicDevicePage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safety ? "complete" : null, params: [prefGroup: "safety", title: "Safety & Security"]
 			href "dynamicDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, SpeechSynthesis, Window Shades", state: devicePageStatus.other ? "complete" : null, params: [prefGroup: "other", title: "Other Devices"]
-			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
+			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: devicePageStatus.custom ? "complete" : null
+		}
+		if (state.saveDevices)
+		{
+			section()
+			{
+				paragraph "<b style=\"color:red\">Changes to remote devices will be saved on exit.</b>"
+				input "cleanupDevices", "bool", title: "Remove unused devices on the remote hub?", required: false, defaultValue: true
+			}
 		}
 		if (requiredDrivers?.size())
 		{
@@ -1569,8 +1644,8 @@ def getRemoteTSReport()
 	return httpGetWithReturn("/system/tsreport/get")
 }
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
-def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}"} ?: null}
+def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "hub-${clientIP}:${state.clientPort}"} ?: null}
 def getConnectString() {remoteType ? new groovy.json.JsonBuilder([uri: (remoteType == "local" || remoteType == "homebridge") ? getFullLocalApiServerUrl() : getFullApiServerUrl(), type: remoteType, token: state.accessToken, connectionType: localConnectionType ?: ""]).toString().bytes.encodeBase64() : ""}
 def getAppHealthStatus() {state.connectStatus}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 3]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC<br /><a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

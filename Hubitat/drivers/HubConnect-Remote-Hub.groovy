@@ -182,6 +182,7 @@ def parse(String description)
 
 	if (eventData.source.length() == 6 && state.subscribedDevices.contains((int) eventData.deviceId)) // "DEVICE"
 	{
+		eventData.isStateChange = (eventData.name == "pushed" || eventData.name ==  "held" || eventData.name == "doubleTapped" || eventData.name ==  "released") ? true : false
 		parent.wsSendEvent(eventData)
 	}
 }
@@ -239,4 +240,4 @@ def updateDeviceIdList(deviceIdList)
     state.subscribedDevices = deviceIdList
 }
 def getPref(setting) {return settings."${setting}"}
-def getDriverVersion() {[platform: "Hubitat", major: 1, minor:5, build: 0]}
+def getDriverVersion() {[platform: "Hubitat", major: 1, minor:6, build: 0]}

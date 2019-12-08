@@ -42,6 +42,7 @@ preferences
 	page(name: "editCustomDriver")
 	page(name: "saveCustomDriverPage")
 	page(name: "utilitesPage")
+	page(name: "reportsPage")
 	page(name: "modeReportPage")
 	page(name: "versionReportLoadingPage")
 	page(name: "versionReportPage")
@@ -50,44 +51,59 @@ preferences
 	page(name: "stubDriverPage")
 	page(name: "supportPage")
 	page(name: "uninstallPage")
+	page(name: "restartPage")
+	page(name: "resetCustomDriverPage")
 }
 
 
 // Map containing driver and attribute definitions for each device class
 @Field ATTRIBUTE_TO_SELECTOR =
 [
-	"alarm":			"alarm",
-	"audioVolume":		"audioVolume",
-	"battery":			"battery",
-	"button":			"button",
-	"bulb":				"bulb",
-	"carbonMonoxide":	"carbonMonoxideDetector",
-	"colorMode":		"colorMode",
-	"colorTemperature":	"colorTemperature",
-	"contact":			"contactSensor",
-	"door":				"garageDoorControl",
-	"doubleTapped":		"doubleTapableButton",
-	"held":				"holdableButton",
-	"humidity":			"relativeHumidityMeasurement",
-	"illuminance":		"illuminanceMeasurement",
-	"level":			"switchLevel",
-	"lock":				"lock",
-	"motion":			"motionSensor",
-	"power":			"powerMeter",
-	"pushed":			"pushableButton",
-	"presence":			"presenceSensor",
-	"refresh":			"refresh",
-	"securityKeypad":	"securityKeypad",
-	"shock":			"shockSensor",
-	"smoke":			"smokeDetector",
-	"speechSynthesis":	"speechSynthesis",
-	"speed":			"fanControl",
-	"switch":			"switch",
-	"temperature":		"temperatureMeasurement",
-	"thermostat":		"thermostat",
-	"valve":			"valve",
-	"water":			"waterSensor",
-	"windowshade":		"windowShade"
+	"alarm":					"alarm",
+	"audioVolume":				"audioVolume",
+	"battery":					"battery",
+	"button":					"button",
+	"bulb":						"bulb",
+	"carbonMonoxide":			"carbonMonoxideDetector",
+	"colorMode":				"colorMode",
+	"colorTemperature":			"colorTemperature",
+	"contact":					"contactSensor",
+	"coolingSetpoint":			"thermostatCoolingSetpoint",
+	"door":						"garageDoorControl",
+	"doubleTapped":				"doubleTapableButton",
+	"energy":					"energyMeter",
+	"heatingSetpoint":			"thermostatHeatingSetpoint",
+	"held":						"holdableButton",
+	"humidity":					"relativeHumidityMeasurement",
+	"illuminance":				"illuminanceMeasurement",
+	"level":					"switchLevel",
+	"lock":						"lock",
+	"motion":					"motionSensor",
+	"power":					"powerMeter",
+	"powerSource":				"powerSource",
+	"pushed":					"pushableButton",
+	"presence":					"presenceSensor",
+	"refresh":					"refresh",
+	"securityKeypad":			"securityKeypad",
+	"shock":					"shockSensor",
+	"smoke":					"smokeDetector",
+	"speechSynthesis":			"speechSynthesis",
+	"speed":					"fanControl",
+	"switch":					"switch",
+	"temperature":				"temperatureMeasurement",
+	"thermostat":				"thermostat",
+	"thermostatFanMode":		"thermostatFanMode",
+	"thermostatMode":			"thermostatMode",
+	"thermostatOperatingState": "thermostatOperatingState",
+	"thermostatSchedule":		"thermostatSchedule",
+	"thermostatSetpoint":		"thermostatSetpoint",
+	"threeAxis":				"threeAxis",
+	"touch":					"touchSensor",
+	"ultravioletIndex":			"ultravioletIndex",
+	"valve":					"valve",
+	"voltage":					"voltageMeasurement",
+	"water":					"waterSensor",
+	"windowshade":				"windowShade"
 ]
 
 
@@ -124,9 +140,10 @@ def mainPage()
 		{
 			input "haltComms", "bool", title: "Suspend all communications between this server and all remote hubs?  (Resets at reboot)", required: false, defaultValue: false
 		}
-		section(menuHeader("Utilities"))
+		section(menuHeader("Utilities &amp; Reports"))
 		{
 			href "utilitesPage", title: "HubConnect Utilites", required: false
+			href "reportsPage", title: "HubConnect Reports", required: false
 		}
 		section(menuHeader("Support"))
 		{
@@ -164,6 +181,7 @@ def upgradePage()
 */
 def customDriverPage()
 {
+	resetDriverForm()
 	dynamicPage(name: "customDriverPage", uninstall: false, install: false, nextPage: "mainPage")
 	{
 		section(menuHeader("Currently Installed Custom Drivers"))
@@ -174,7 +192,7 @@ def customDriverPage()
 				href "editCustomDriver", title: "${driver.driver} (${groupname})", description: "${driver.attr}", params: [groupname: groupname]
 			}
 
-			href "createCustomDriver", title: "Add Driver", description: "Define a custom driver type.", params: [newdriver: true]
+			href "createCustomDriver", title: "Add Driver", description: "Define a custom driver type."
 		}
 		section(menuHeader("Navigation"))
 		{
@@ -191,7 +209,7 @@ def customDriverPage()
 
 	Notes: 	This requires a page refresh in order to work properly.  Hubitat cache issue??
 */
-def editCustomDriver(params)
+def editCustomDriver(params = [:])
 {
 	if (params?.groupname)
 	{
@@ -221,30 +239,16 @@ def editCustomDriver(params)
 /*
 	createCustomDriver
 
-	Purpose: Clears out all preferences so the UI page displays as if it were new.
-
-	Notes: 	This requires a page refresh in order to work properly.  Hubitat cache issue??
+	Purpose: Displays a blank custom driver form.
 */
-def createCustomDriver(params)
+def createCustomDriver()
 {
-	if (params?.newdriver == true)
-	{
-		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
-		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
-		app.updateSetting("attr_1", [type: "enum", value: ""])
-		17.times
-		{
-			app.updateSetting("attr_${it+1}", [type: "string", value: ""])
-		}
-		params.newdriver = false
-	}
-
 	driverPage("createCustomDriver")
 }
 
 
 /*
-	createCustomDriver
+	driverPage
 
 	Purpose: Displays the page where shackrat's custom device drivers (SmartPlug, Z-Wave Repeater) are selected to be linked to the controller hub.
 
@@ -257,10 +261,10 @@ def driverPage(pageName, groupName = null)
 		section(menuHeader("Configure Driver"))
 		{
 			if (groupName) paragraph "Attribute Class Name (letters & numbers only):<br />${groupName}"
-			else input "newDev_AttributeGroup", "text", title: "Attribute Class Name (letters & numbers only):", required: true, defaultValue: null
-			input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: "HubConnect <replace with your name>", submitOnChange: true
+			else input "newDev_AttributeGroup", "text", title: "Attribute Class Name (letters & numbers only):", required: true, defaultValue: null, submitOnChange: true
+			if (groupName || newDev_AttributeGroup?.length() > 0) input "newDev_DriverName", "text", title: "Device Driver Name:", required: true, defaultValue: "HubConnect <replace with your name>", submitOnChange: true
 		}
-		if (newDev_AttributeGroup?.size() && newDev_DriverName?.size())
+		if (settings.newDev_AttributeGroup?.size() > 0 && settings.newDev_DriverName?.size() > 0)
 		{
 			section(menuHeader("Supported Attributes"))
 			{
@@ -277,8 +281,8 @@ def driverPage(pageName, groupName = null)
 			{
 				section(menuHeader("Save Custom Device Type"))
 				{
-					href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: groupName]
-					href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: groupName]
+					href "saveCustomDriverPage", title: "Save", description: "Save this custom device type.",  params: [update: groupName ?: newDev_AttributeGroup]
+					if (groupName != null) href "saveCustomDriverPage", title: "Delete", description: "Delete this custom device type.", params: [delete: groupName]
 				}
 				if (groupName != null)
 				{
@@ -305,13 +309,7 @@ def saveCustomDriverPage(params)
 	if (params?.delete)
 	{
 		state?.customDrivers.remove(params.delete)
-		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
-		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
-		app.updateSetting("attr_1", [type: "enum", value: ""])
-		17.times
-		{
-			app.updateSetting("attr_${it+1}", [type: "string", value: ""])
-		}
+		resetDriverForm()
 		saveCustomDrivers()
 		return customDriverPage()
 	}
@@ -326,7 +324,6 @@ def saveCustomDriverPage(params)
 			if (settings."attr_${it}"?.size())
 			{
 				attr << settings."attr_${it}"
-				app.updateSetting("attr_${it}", [type: idx == 0 ? "enum" : "string", value: ""])
 			}
 		}
 
@@ -338,12 +335,8 @@ def saveCustomDriverPage(params)
 			selector: state.customDrivers[deviceClass]?.selector ?: "${randString}_${selector.value}",
 			attr: attr
 		]
-
-		log.debug state.customDrivers
 		saveCustomDrivers()
-
-		app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
-		app.updateSetting("newDev_DriverName", [type: "string", value: ""])
+		resetDriverForm()
 	}
 	else return customDriverPage()
 
@@ -374,6 +367,23 @@ def saveCustomDrivers()
 	{
 	  child ->
 		child.saveCustomDrivers(state.customDrivers)
+	}
+}
+
+
+/*
+	resetDriverForm
+
+	Purpose: Clears out all preferences so the UI page displays as if it were new.
+*/
+def resetDriverForm()
+{
+	app.updateSetting("newDev_AttributeGroup", [type: "string", value: ""])
+	app.updateSetting("newDev_DriverName", [type: "string", value: ""])
+	app.updateSetting("attr_1", [type: "enum", value: ""])
+	17.times
+	{
+		app.updateSetting("attr_${it+1}", [type: "string", value: ""])
 	}
 }
 
@@ -472,7 +482,6 @@ def initialize()
 	childApps.each
 	{
 	  child ->
-		child.setCommStatus(haltComms)
 		log.debug "Found server instance: ${child.label}"
 	}
 
@@ -591,7 +600,6 @@ def remoteHubControl(child, command)
 */
 def utilitesPage(params)
 {
-	atomicState.versionReportStatus = null
 	if (params?.debug != null)
 	{
 		childApps.each
@@ -601,31 +609,77 @@ def utilitesPage(params)
 			log.debug "${params.debug ? "Enabling" : "Disabling"} debug logging on ${child.label}"
 		}
 	}
-	if (params?.resetcustom != null)
-	{
-		state.customDrivers = [:]
-		log.info "Custom driver system has been reset."
-	}
-
 	dynamicPage(name: "utilitesPage", title: "HubConnect Utilites", uninstall: false, install: false)
 	{
 		section(menuHeader("Utilites"))
 		{
+			href "hubUtilitiesPage", title: "Remote Hub Utilities", description: "Shutdown/reboot hubs on the same LAN..."
+			href "resetCustomDriverPage", title: "Reset Custom Drivers", description: "Reset and re-initialize the custom defined device driver system..."
+			href "restartPage", title: "Restart HubConnect", description: "Restart all HubConnect drivers and services..."
+		}
+	   	section(menuHeader("Master Debug Control"))
+	   	{
+	   		if (params?.debug != null) paragraph "Debug has been ${params.debug ? "enabled" : "disabled"} for all hubs."
+	   		href "utilitesPage", title: "Enable debug logging for all instances?", description: "Click to enable", params: [debug: true]
+	   		href "utilitesPage", title: "Disable debug logging for all instances?", description: "Click to disable",  params: [debug: false]
+	   	}
+	   	section(menuHeader("Uninstall HubConnect"))
+	   	{
+			href "uninstallPage", title: "Uninstall HubConnect from this hub.", description: "", state: null
+		}
+		section()
+		{
+			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
+		}
+		state.utilityStatus = ""
+		params = [:]
+	}
+}
+
+
+/*
+	resetCustomDriverPage
+
+	Purpose: Confirms reset of custom drivers.
+*/
+def resetCustomDriverPage()
+{
+	dynamicPage(name: "resetCustomDriverPage", title: "Reset Custom Drivers", uninstall: false, install: false)
+	{
+		if (state.utilityStatus != "") section(menuHeader("Reset Status")) { paragraph "${state.utilityStatus}" }
+		else
+		{
+			section(menuHeader("Reset Custom Drivers"))
+			{
+				paragraph "This will DELETE all custom driver definitiopns from all hubs.\nIt will NOT remove any virtual devices that have been shared."
+				input "resetCustomDrivers", "button", title: "Reset Custom Drivers", submitOnChange: false
+			}
+		}
+		section()
+		{
+			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
+			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
+		}
+		state.utilityStatus = ""
+	}
+}
+
+
+/*
+	reportsPage
+
+	Purpose: Displays a menu of reports.
+*/
+def reportsPage(params)
+{
+	atomicState.versionReportStatus = null
+	dynamicPage(name: "reportsPage", title: "HubConnect Reports", uninstall: false, install: false)
+	{
+		section(menuHeader("Reports"))
+		{
 			href "modeReportPage", title: "System Mode Report", description: "Lists all modes configured on each remote hub..."
 			href "versionReportLoadingPage", title: "App & Driver Version Report", description: "Displays all app and driver versions configured on each hub...  (May be slow to load)"
-			href "hubUtilitiesPage", title: "Remote Hub Utilities", description: "Shutdown/reboot hubs on the same LAN..."
-			href "utilitesPage", title: "Reset Custom Drivers", description: "This will delete ALL custom drivers and reset custom driver system...", params: [resetcustom: true]
 			href "diagnosticReportPage", title: "Technical Support Report", description: "Export HubConnect configuration data for technical support."
-		}
-		section(menuHeader("Master Debug Control"))
-		{
-			if (params?.debug != null) paragraph "Debug has been ${params.debug ? "enabled" : "disabled"} for all hubs."
-			href "utilitesPage", title: "Enable debug logging for all instances?", description: "Click to enable", params: [debug: true]
-			href "utilitesPage", title: "Disable debug logging for all instances?", description: "Click to disable",  params: [debug: false]
-		}
-		section(menuHeader("Uninstall HubConnect"))
-		{
-			href "uninstallPage", title: "Uninstall HubConnect from this hub.", description: "", state: null
 		}
 		section()
 		{
@@ -674,7 +728,7 @@ def modeReportPage()
 		}
 		section(menuHeader("Navigation"))
 		{
-			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
+			href "reportsPage", title: "Reports", description: "Return to Reports menu..."
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
 		}
 	}
@@ -698,7 +752,7 @@ def getVersionReportData()
   	  child ->
 		child.getChildDevices()?.each
 		{
- 	     device ->
+		  device ->
 			if (serverDrivers[device.typeName] == null) serverDrivers[device.typeName] = device.getDriverVersion()
 		}
 	}
@@ -807,11 +861,57 @@ def versionReportPage()
 		}
 		section()
 		{
-			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
+			href "reportsPage", title: "Utilities", description: "Return to Reports menu..."
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
 		}
 	}
 }
+
+
+/*
+	restartPage
+
+	Purpose: Restarts HubConnect services.
+*/
+def restartPage()
+{
+	dynamicPage(name: "restartPage", title: "Restart HubConnect Services", uninstall: false, install: false)
+	{
+		if (state.utilityStatus != "") section(menuHeader("Restart Status")) { paragraph "${state.utilityStatus}" }
+		else
+		{
+			section(menuHeader("Restart All Services"))
+			{
+				input "restartAllServices", "button", title: "Restart All", submitOnChange: false
+			}
+			section(menuHeader("Restart Services on Select Hubs"))
+			{
+				childApps.each
+				{
+			  	  child ->
+					if (child.getState()?.connectStatus == "offline")
+					{
+						paragraph "${child.label} is offline and cannot be controlled."
+					}
+					else if (child.remoteType != "homebridge")
+					{
+						input "restart_${child.id}", "button", title: "${child.label}", submitOnChange: false, params: [t: now()]
+					}
+					else paragraph "${child.label} cannot be remotely restarted."
+				}
+			}
+		}
+		section(menuHeader("Navigation"))
+		{
+			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
+			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
+		}
+		state.utilityStatus = ""
+	}
+}
+
+
+
 
 
 /*
@@ -883,8 +983,8 @@ Created on ${new Date(now()).format("MM-dd-yyyy HH:mm Z", location.timeZone)}
 ${"=".multiply(32)} HubConnect Server ${"=".multiply(33)}
 appId: ${app.id}
 appVersion: ${appVersion.toString()}
-installedVersion: ${state.installedVersion}
-remoteClients: ${childApps.size()}
+installedVersion: ${state?.installedVersion}
+remoteClients: ${childApps?.size()}
 
 ---------- Hub ----------
 hardwareID: ${location?.hubs[0]?.data?.hardwareID}
@@ -918,34 +1018,34 @@ ${"=".multiply(80)}
 		def remoteHub = child.getHubDevice()
 		def remoteTSR = child.getRemoteTSReport()
 
-		hcTopology += "\t|\n\t+---${hubName}(${child.localConnectionType ?: "http"})\n"
+		hcTopology += "\t|\n\t+---${hubName}(${child?.localConnectionType ?: "http"})\n"
 		tsReport +=
 """
 ${"=".multiply(35-(hubName.length()/2))} ${hubName} (Instance) ${"=".multiply(35-(hubName.length()/2))}
 appId: ${child.id}
-appVersion: ${child.getAppVersion().toString()}
-installedVersion: ${child.getState().installedVersion}
+appVersion: ${child.getAppVersion()?.toString()}
+installedVersion: ${child.getState()?.installedVersion}
 
 -------- Prefs ----------
-pushModes: ${child.pushModes}
-receiveModes: ${child.receiveModes}
-pushHSM: ${child.pushHSM}
-receiveHSM: ${child.receiveHSM}
-enableDebug: ${child.enableDebug}
+pushModes: ${child?.pushModes}
+receiveModes: ${child?.receiveModes}
+pushHSM: ${child?.pushHSM}
+receiveHSM: ${child?.receiveHSM}
+enableDebug: ${child?.enableDebug}
 
 -------- Status ---------
-appHealth: ${child.getState().connectStatus}
-commDisabled: ${child.getState().commDisabled}
+appHealth: ${child.getState()?.connectStatus}
+commDisabled: ${child.getState()?.commDisabled}
 
 -------- Comms ----------
-remoteType: ${child.remoteType}
-localConnectionType: ${child.localConnectionType}
-clientURI: ${child.getState().clientURI}
+remoteType: ${child?.remoteType}
+localConnectionType: ${child?.localConnectionType}
+clientURI: ${child.getState()?.clientURI}
 connectionKey: ${child.getConnectString()}
 
 -------- Inbound Devices --------
-incomingDevices: ${child.getChildDevices().size()-1}
-deviceIdList: ${child.getState().deviceIdList}
+incomingDevices: ${child.getChildDevices()?.size()-1}
+deviceIdList: ${child.getState()?.deviceIdList}
 
 ------ Virtual Hub ------
 -Attributes-
@@ -959,8 +1059,8 @@ switch: ${remoteHub?.currentValue("switch")}
 version: ${remoteHub?.currentValue("version")}
 
 -State-
-subscribedDevices: ${remoteHub?.getState().subscribedDevices}
-connectionAttempts: ${remoteHub?.getState().connectionAttempts}
+subscribedDevices: ${remoteHub?.getState()?.subscribedDevices}
+connectionAttempts: ${remoteHub?.getState()?.connectionAttempts}
 
 -Preferences-
 refreshSocket: ${remoteHub?.getPref("refreshSocket")}
@@ -968,7 +1068,7 @@ refreshHour: ${remoteHub?.getPref("refreshHour")}
 refreshMinute: ${remoteHub?.getPref("refreshMinute")}
 
 ---- Custom Drivers -----
-customDrivers: ${remoteHub?.getState().customDrivers?.toString()}
+customDrivers: ${remoteHub?.getState()?.customDrivers?.toString()}
 
 ${"=".multiply(80)}
 
@@ -1002,11 +1102,11 @@ deviceIdList: ${remoteTSR?.devices?.deviceIdList}
 
 --------- Modes ---------
 activeMode: ${modeReport?.active}
-definedModes: ${modeReport?.modes?.name.toString()}
+definedModes: ${modeReport?.modes?.name?.toString()}
 
 ---------- HSM ----------
-activeState: ${hsmReport.hsmStatus ?: "Not Installed"}
-definedStates: ${hsmReport.hsmSetArm}
+activeState: ${hsmReport?.hsmStatus ?: "Not Installed"}
+definedStates: ${hsmReport?.hsmSetArm}
 
 ------ Virtual Hub ------
 Attributes:
@@ -1045,7 +1145,7 @@ ${"=".multiply(80)}
 		}
 		section(menuHeader("Navigation"))
 		{
-			href "utilitesPage", title: "Utilities", description: "Return to Utilities menu..."
+			href "reportsPage", title: "Utilities", description: "Return to Reports menu..."
 			href "mainPage", title: "Home", description: "Return to HubConnect main menu..."
 		}
 	}
@@ -1108,7 +1208,7 @@ metadata
 {
 	definition(name: "${dtMap.driver}", namespace: "shackrat", author: "Steve White")
 	{
-		capability "${ATTRIBUTE_TO_SELECTOR.find{it.key == settings."attr_1"}.value.capitalize()}"
+		capability "${ATTRIBUTE_TO_SELECTOR.find{it.key == dtMap.attr[0]}.value.capitalize()}"
 		capability "Refresh"
 
 		// Autogenerated attributes
@@ -1269,6 +1369,56 @@ def uninstallPage()
 
 
 /*
+	appButtonHandler
+
+	Purpose: Handles button events for various pages.
+*/
+def appButtonHandler(btnPressed)
+{
+	switch(btnPressed)
+	{
+		// Restart all hub services
+		case "restartAllServices":
+			childApps.each
+			{
+		  	  child ->
+				if (child.getState()?.connectStatus != "offline" && child.remoteType != "homebridge")
+				{
+					log.warn "Re-initializing ${child.label}..."
+					child.initialize()
+					if (child.remoteInitialize()?.status == "success")
+						state.utilityStatus += "${child.label} reinitialized\n"
+					else state.utilityStatus += "ERROR: ${child.label} could not be reinitialized\n"
+				}
+				else log.warn "Could not restart services on ${child.label} because the hub is offline or does not support the command..."
+			}
+			break
+		case "resetCustomDrivers":
+			state.customDrivers = [:]
+			log.info "Custom driver system has been reset."
+			state.utilityStatus = "Custom driver definitions have been reset!"
+			saveCustomDrivers()
+			break;
+	}
+
+	// Individual hub service restarts
+	if (btnPressed.startsWith("restart_"))
+	{
+		def appId = btnPressed.replace("restart_", "")
+		def child = childApps?.find{it.id == Integer.parseInt(appId)}
+		if (child != null)
+		{
+			log.warn "Re-initializing ${child.label}..."
+			child.initialize()
+			if (child.remoteInitialize()?.status == "success")
+				state.utilityStatus += "${child.label} reinitialized\n"
+			else state.utilityStatus += "ERROR: ${child.label} could not be reinitialized\n"
+		}
+	}
+}
+
+
+/*
 	versionCheck
 
 	Purpose: Fetches the latest available module versions.
@@ -1312,5 +1462,5 @@ def versionCheckResponse(response, data)
 
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 3]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}

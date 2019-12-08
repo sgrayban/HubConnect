@@ -59,6 +59,7 @@ preferences
 	"contact":			[driver: "Contact Sensor", selector: "genericContacts", capability: "contactSensor", prefGroup: "sensors", attr: ["contact", "temperature", "battery"]],
 	"dimmer":			[driver: "Dimmer", selector: "genericDimmers", capability: "switchLevel", prefGroup: "switches", attr: ["switch", "level"]],
 	"domemotion":		[driver: "DomeMotion Sensor", selector: "domeMotions", capability: "motionSensor", prefGroup: "sensors", attr: ["motion", "temperature", "illuminance", "battery"]],
+	"energy":			[driver: "Energy Meter", selector: "energyMeters", capability: "energyMeter", prefGroup: "switches", attr: ["energy"]],
 	"energyplug":		[driver: "DomeAeon Plug", selector: "energyPlugs", capability: "energyMeter", prefGroup: "switches", attr: ["switch", "power", "voltage", "current", "energy", "acceleration"]],
 	"fancontrol":		[driver: "Fan Controller", selector: "fanControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
 	"fanspeed":			[driver: "FanSpeed Controller", selector: "fanSpeedControl", capability: "fanControl", prefGroup: "switches", attr: ["speed"]],
@@ -135,6 +136,10 @@ mappings
     path("/system/versions/get")
 	{
 		action: [GET: "getVersions"]
+	}
+    path("/system/initialize")
+	{
+		action: [GET: "remoteInitialize"]
 	}
     path("/system/update")
 	{
@@ -492,6 +497,7 @@ def saveDevicesToServer()
 	if (state.saveDevices == false) return
 
 	// Fetch all devices and attributes for each device group and send them to the master.
+	List idList = []
 	NATIVE_DEVICES.each
 	{
 	  groupname, device ->
@@ -500,6 +506,7 @@ def saveDevicesToServer()
 		settings."${device.selector}".each
 		{
 			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
 		}
 		if (devices != [])
 		{
@@ -512,13 +519,20 @@ def saveDevicesToServer()
 	state.customDrivers.each
 	{
 	  groupname, driver ->
-		def customSel = settings?."custom_${groupname}"
-		if (customSel != null)
+
+		devices = []
+		settings?."custom_${groupname}"?.each
 		{
-			if (enableDebug) log.info "Sending custom devices to server..."
-			sendPostCommand("/devices/save", [deviceclass: groupname, devices: customSel])
+			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
+			idList << it.id
+		}
+		if (devices != [])
+		{
+			if (enableDebug) log.info "Sending custom devices to remote: ${groupname} - ${devices}"
+			sendPostCommand("/devices/save", [deviceclass: groupname, devices: devices])
 		}
 	}
+	if (cleanupDevices) sendPostCommand("/devices/save", [cleanupDevices: idList])
 	state.saveDevices = false
 }
 
@@ -583,7 +597,7 @@ def deviceEvent()
 def wsSendEvent(Object event)
 {
 	// We can do this faster if we don't need info on the device, so defer that for logging
-	sendEvent("${serverIP}:${event.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) event.unit, descriptionText: (String) event.descriptionText, isStateChange: true])
+	sendEvent("${serverIP}:${event.deviceId}", (Map) [name: (String) event.name, value: (String) event.value, unit: (String) event.unit, descriptionText: (String) event.descriptionText, isStateChange: event.isStateChange])
 	if (enableDebug) log.info "Received websocket event from server/${event.displayName}: [${event.name}, ${event.value} ${event.unit}]"
 }
 
@@ -599,8 +613,22 @@ def wsSendEvent(Object event)
 */
 def saveDevices()
 {
+	// Device cleanup?
+	if (request?.JSON?.cleanupDevices != null)
+	{
+		childDevices.each
+		{
+		  child ->
+			if (child.deviceNetworkId != "serverhub-${serverIP}" && request.JSON.cleanupDevices.find{"${serverIP}:${it}" == child.deviceNetworkId} == null)
+			{
+				if (enableDebug) log.info "Deleting device ${child.label} as it is no longer shared with this hub."
+				deleteChildDevice(child.deviceNetworkId)
+			}
+		}
+	}
+
 	// Find the device class
-	if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
+	else if (!request?.JSON?.deviceclass || !request?.JSON?.devices)
 	{
 		return jsonResponse([status: "error"])
 	}
@@ -642,7 +670,7 @@ private createLinkedChildDevice(dev, driverType)
 	if (childDevice)
 	{
 		// Device exists
-		if (enableDebug) log.trace "${driverType} ${dev.label} exists... Skipping creation.."
+		if (enableDebug) log.trace "${driverType} ${dev.label} (${childDevice.deviceNetworkId}) exists... Skipping creation.."
 		return
 	}
 	else
@@ -933,13 +961,13 @@ def saveCustomDrivers()
 {
 	if (request?.JSON?.find{it.key == "customdrivers"})
 	{
-		// Clean up
+		// Clean up from deleted drivers
 		state.customDrivers.each
 		{
 	  	  key, driver ->
-			if (!request?.JSON?.customdrivers?.find{it == key})
+			if (request?.JSON?.customdrivers?.findAll{it.key == key}.size() == 0)
 			{
-				if (logDebug) log.debug "Removing custom device selector: ${key}"
+				if (enableDebug) log.debug "Unsubscribing from events and removing device selector for ${key}"
 				unsubscribe(settings."custom_${key}")
 				app.removeSetting("custom_${key}")
 			}
@@ -1005,7 +1033,7 @@ def remoteUpdate(params) { updated(); jsonResponse([status: "success"]) }
 def uninstalled()
 {
 	// Remove virtual hub device
-	if (hubDevice != null) deleteChildDevice("hub-${clientIP}")
+	if (hubDevice != null) deleteChildDevice("serverhub-${clientIP}")
 
 	// Remove all devices if not explicity told to keep.
 	if (removeDevices) childDevices.each { deleteChildDevice(it.deviceNetworkId) }
@@ -1071,6 +1099,22 @@ def initialize()
 
 
 /*
+	remoteInitialize
+
+	Purpose: Allows the server to re-initialize this remote.
+
+	URL Format: (GET) /system/initialize
+
+	Notes: Called from HTTP request from server hub.
+*/
+def remoteInitialize()
+{
+	initialize()
+	jsonResponse([status: "success"])
+}
+
+
+/*
 	createHubChildDevice
 
 	Purpose: Create child device for the server hub so up/down status can be managed with rules.
@@ -1132,6 +1176,14 @@ def getDevicePageStatus()
 	{  groupname, device ->
 		status["${device.prefGroup}"] = status["${device.prefGroup}"] != null ?: settings?."${device.selector}"?.size()
 	}
+
+	// Custom defined device drivers
+	state.customDrivers.each
+	{
+	  groupname, driver ->
+		status["custom"] = status["custom"] != null ?: settings?."custom_${groupname}"?.size()
+	}
+
 	status["all"] = status.find{it.value == true} ? true : null
 	status
 }
@@ -1349,7 +1401,15 @@ def devicePage()
 			href "dynamicDevicePage", title: "Switches, Dimmers, & Fans", description: "Switch, Dimmer, Bulb, Power Meters", state: devicePageStatus.switches ? "complete" : null, params: [prefGroup: "switches", title: "Switches, Dimmers, & Fans"]
 			href "dynamicDevicePage", title: "Safety & Security", description: "Locks, Keypads, Smoke & Carbon Monoxide, Leak, Sirens", state: devicePageStatus.safety ? "complete" : null, params: [prefGroup: "safety", title: "Safety & Security"]
 			href "dynamicDevicePage", title: "Other Devices", description: "Presence, Button, Valves, Garage Doors, Speech Synthesis, Window Shades", state: devicePageStatus.other ? "complete" : null, params: [prefGroup: "other", title: "Other Devices"]
-			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: totalCustomDevices ? "complete" : null
+			href "customDevicePage", title: "Custom Devices", description: "Devices with user-defined drivers.", state: devicePageStatus.custom ? "complete" : null
+		}
+		if (state.saveDevices)
+		{
+			section()
+			{
+				paragraph "<b style=\"color:red\">Changes to remote devices will be saved on exit.</b>"
+				input "cleanupDevices", "bool", title: "Remove unused devices on the remote hub?", required: false, defaultValue: true
+			}
 		}
 		if (requiredDrivers?.size())
 		{
@@ -1524,5 +1584,5 @@ def getTSReport()
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "serverhub-${serverIP}"} ?: null}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 5, build: 3]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 0]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
