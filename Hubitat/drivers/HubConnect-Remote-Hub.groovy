@@ -79,6 +79,9 @@ def initialize()
 {
 	log.trace "Initialize virtual Hub device..."
 
+	// Make sure we're not an orphaned device
+	if (checkParent() == false) return
+
 	state.connectionAttempts = 0
 
 	if (state.connectionType == "socket")
@@ -108,6 +111,9 @@ def webSocketStatus(String socketStatus)
 {
 	if (socketStatus.startsWith("status: open"))
 	{
+		// Make sure we're not an orphaned device
+		if (checkParent() == false) return
+
 		log.info "Connected to ${device.label ?: device.name}"
 		state.connectionAttempts = 0
 		sendEvent([name: "eventSocketStatus", value: "connected"])
@@ -138,7 +144,7 @@ def webSocketStatus(String socketStatus)
 /*
 	setConnectionType
 
-	Called by Server Instance to set the connection type.
+	Called by Server Instance or Remote Client to set the connection type.
 */
 def setConnectionType(String connType, String remoteIP, String remotePort)
 {
@@ -195,6 +201,9 @@ def parse(String description)
 */
 def on()
 {
+	// Make sure we're not an orphaned device
+	if (checkParent() == false) return
+
 	parent.setCommStatus(false)
 	if (state.connectionType == "socket")
 	{
@@ -211,6 +220,9 @@ def on()
 */
 def off()
 {
+	// Make sure we're not an orphaned device
+	if (checkParent() == false) return
+
 	parent.setCommStatus(true)
 	if (state.connectionType == "socket")
 	{
@@ -226,6 +238,9 @@ def off()
 */
 def pushCurrentMode()
 {
+	// Make sure we're not an orphaned device
+	if (checkParent() == false) return
+
 	parent.pushCurrentMode()
 }
 
@@ -239,5 +254,33 @@ def updateDeviceIdList(deviceIdList)
 {
     state.subscribedDevices = deviceIdList
 }
+
+
+/*
+	checkParent
+
+	Checks to make sure the device is associated with a HubConnect parent app.
+*/
+def checkParent()
+{
+	// Make sure we're not an orphan
+	if (parent == null)
+	{
+		log.error "This HubConnect Remote Hub is no longer associated with HubConnect and is being disabled.  Please remove it from this hub."
+		if (state?.connectionType == "socket")
+		{
+			InterfaceUtils?.webSocketClose(device)
+		}
+		subscribedDevices = []
+		state.connectionType = "DEVICE DISCONNECTED.  Please DELETE!"
+		sendEvent([name: "eventSocketStatus", value: "disassociated"])
+		sendEvent([name: "switch", value: "off"])
+		sendEvent([name: "modeStatus", value: "invalid"])
+		device.setDeviceNetworkId("hubconnect-orphan-${now()}")
+		device.setLabel("HubConnect Disabled Hub")
+		return false
+	}
+	return true
+}
 def getPref(setting) {return settings."${setting}"}
-def getDriverVersion() {[platform: "Hubitat", major: 1, minor:6, build: 0]}
+def getDriverVersion() {[platform: "Hubitat", major: 1, minor:6, build: 1]}
