@@ -498,11 +498,12 @@ def saveDevicesToServer()
 
 	// Fetch all devices and attributes for each device group and send them to the master.
 	List idList = []
+	def devices = []
 	NATIVE_DEVICES.each
 	{
 	  groupname, device ->
 
-		def devices = []
+		devices = []
 		settings."${device.selector}".each
 		{
 			devices << [id: it.id, label: it.label ?: it.name, attr: getAttributeMap(it, groupname)]
@@ -1033,7 +1034,7 @@ def remoteUpdate(params) { updated(); jsonResponse([status: "success"]) }
 def uninstalled()
 {
 	// Remove virtual hub device
-	if (hubDevice != null) deleteChildDevice("serverhub-${clientIP}")
+	if (hubDevice != null) deleteChildDevice("serverhub-${serverIP}")
 
 	// Remove all devices if not explicity told to keep.
 	if (removeDevices) childDevices.each { deleteChildDevice(it.deviceNetworkId) }
@@ -1065,7 +1066,7 @@ def initialize()
 		if (parts?.size() > 1)
 		{
 			state.deviceIdList << (state.connectionType != "socket" ? parts[1].toString() : parts[1].toInteger())
-			if (updateDeviceIPs) it.deviceNetworkId = "${clientIP}:${parts[1]}"
+			if (updateDeviceIPs) it.deviceNetworkId = "${serverIP}:${parts[1]}"
 		}
 	}
 	app.updateSetting("updateDeviceIPs", [type: "bool", value: false])
@@ -1322,7 +1323,7 @@ def connectPage()
 		section(menuHeader("Remote Details"))
 		{
 			input "thisClientName", "string", title: "Friendly Name of this Remote Hub <i>Optional</i>:", required: false, defaultValue: null, submitOnChange: false
-			if (clientIP && state.connectStatus == "online") input "updateDeviceIPs", "bool", title: "Update child devices with new IP address?", defaultValue: false
+			if (serverIP && state.connected) input "updateDeviceIPs", "bool", title: "Update child devices with new IP address?", defaultValue: false
 		}
 		section()
 		{
@@ -1584,5 +1585,5 @@ def getTSReport()
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def getHubDevice() {getChildDevices()?.find{it.deviceNetworkId == "serverhub-${serverIP}"} ?: null}
 def getIsConnected(){(state?.clientURI?.size() > 0 && state?.clientToken?.size() > 0) ? true : false}
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 0]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 1]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
