@@ -255,6 +255,7 @@ def editCustomDriver(params = [:])
 */
 def createCustomDriver()
 {
+  state.cdFields = 1
 	driverPage("createCustomDriver")
 }
 
@@ -1511,5 +1512,5 @@ def versionCheckResponse(response, data)
 
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 1]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 2]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
