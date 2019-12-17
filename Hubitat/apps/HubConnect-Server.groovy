@@ -255,7 +255,6 @@ def editCustomDriver(params = [:])
 */
 def createCustomDriver()
 {
-  state.cdFields = 1
 	driverPage("createCustomDriver")
 }
 
@@ -406,6 +405,7 @@ def resetDriverForm()
 	app.updateSetting("hdbCapability_refresh", [type: "bool", value: false])
 	app.updateSetting("hdbCapability_lockCodes", [type: "bool", value: false])
 	app.updateSetting("hdbAttribute_lastCodeName", [type: "bool", value: false])
+	state.cdFields = 1
 }
 
 
