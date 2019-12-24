@@ -53,6 +53,7 @@ preferences
 	page(name: "uninstallPage")
 	page(name: "restartPage")
 	page(name: "resetCustomDriverPage")
+  page(name: "deviceReportPage")
 }
 
 
@@ -161,6 +162,60 @@ def mainPage()
 			href "supportPage", title: "Technical Support", description: "Get help with HubConnect, download code, or read the docs."
 			href "aboutPage", title: "Help Support HubConnect!", description: "HubConnect is provided free of charge for the benefit the Hubitat community.  If you find HubConnect to be a valuable tool, please help support the project."
 			paragraph "<span style=\"font-size:.8em\">Server Container v${appVersion.major}.${appVersion.minor}.${appVersion.build} ${appCopyright}</span>"
+		}
+	}
+}
+
+
+/*
+	deviceReportPage
+
+	Purpose: Shows status of all devices on this hub
+
+	Notes: 	Not very exciting.
+*/
+def deviceReportPage()
+{
+	def hub = location.hubs[0]
+    def serverIP = hub.getDataValue('localIP')
+
+	String html = "<style>.in{background-color:red}.ot{background-color:green}.ns{background-color:#cccccc}</style><table style=\"width:100%;\"><tr><th>ID</th><th>Name</th>"
+	def serverHubDevices = httpGetWithReturn("http://${serverIP}:8080/device/listJson?capability=capability.*")
+
+	List serverInstanceData = []
+
+	// Collect all devices from remotes
+	childApps.each
+	{
+	  child ->
+		serverInstanceData << [id: child.id, label: child.label, outgoingDevices: child.getSelectedDeviceIds(), incomingDevices: child.getChildDevices()?.collect{it.id}]
+		html += "<th>${child.label}</th>"
+	}
+	html += "<tbody>"
+
+	serverHubDevices?.each
+	{
+	  dev ->
+		html += "<tr><td><a href=\"/device/edit/${dev.id}\">${dev.id}</a></td><td>${dev.name}</td>"
+
+		// Compile outgoing device data
+		serverInstanceData.each
+		{
+		  inst ->
+
+			if (inst.outgoingDevices.find{it == dev.id.toString()}) html += "<td class=\"ot\"></td>"
+			else if (inst.incomingDevices.find{it == dev.id.toString()}) html += "<td class=\"in\"></td>"
+			else html += "<td class=\"ns\"></td>"
+		}
+		html += "</tr>"
+	}
+
+	dynamicPage(name: "deviceReportPage", title: "HubConnect Device Report", uninstall: false, install: true)
+	{
+		section(menuHeader("Device Report for: ${app.label}"))
+		{
+			paragraph "${html}</tbody></table>"
+			paragraph "<table><tr><td>Legend: </td><td class=\"in\">incoming</td><td>&nbsp;</td><td class=\"ot\">outgoing</td></tr></table>"
 		}
 	}
 }
@@ -698,6 +753,7 @@ def reportsPage(params)
 	{
 		section(menuHeader("Reports"))
 		{
+      href "deviceReportPage", title: "Device Usage Report", description: "A grid of all devices on this hub and their usage in HubConnect...", required: false
 			href "modeReportPage", title: "System Mode Report", description: "Lists all modes configured on each remote hub..."
 			href "versionReportLoadingPage", title: "App & Driver Version Report", description: "Displays all app and driver versions configured on each hub...  (May be slow to load)"
 			href "diagnosticReportPage", title: "Technical Support Report", description: "Export HubConnect configuration data for technical support."
@@ -1512,5 +1568,5 @@ def versionCheckResponse(response, data)
 
 def menuHeader(titleText){"<div style=\"width:102%;background-color:#696969;color:white;padding:4px;font-weight: bold;box-shadow: 1px 2px 2px #bababa;margin-left: -10px\">${titleText}</div>"}
 def isNewer(latest, installed) { (latest.major.toInteger() > installed.major ||  (latest.major.toInteger() == installed.major && latest.minor.toInteger() > installed.minor) || (latest.major.toInteger() == installed.major && latest.minor.toInteger() == installed.minor && latest.build.toInteger() > installed.build)) ? true : false }
-def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 2]}
+def getAppVersion() {[platform: "Hubitat", major: 1, minor: 6, build: 3]}
 def getAppCopyright(){"&copy; 2019 Steve White, Retail Media Concepts LLC <a href=\"https://github.com/shackrat/Hubitat-Private/blob/master/HubConnect/License%20Agreement.md\" target=\"_blank\">HubConnect License Agreement</a>"}
