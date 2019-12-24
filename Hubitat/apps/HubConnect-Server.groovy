@@ -1525,6 +1525,51 @@ def appButtonHandler(btnPressed)
 
 
 /*
+	httpGetWithReturn
+
+	Purpose: Helper function to format GET requests with the proper oAuth token.
+
+	Notes: 	Command is absolute and must begin with '/'
+			Returns JSON Map if successful.
+*/
+def httpGetWithReturn(command)
+{
+	def requestParams =
+	[
+		uri:  command,
+		requestContentType: "application/json",
+		headers:
+		[
+			Authorization: "Bearer ${state.clientToken}"
+		],
+		timeout: 10
+	]
+
+	try
+	{
+		httpGet(requestParams)
+		{
+	  	  response ->
+			if (response?.status == 200)
+			{
+				return response.data
+			}
+			else
+			{
+				log.warn "httpGet() request failed with status ${response?.status}"
+				return [status: "error", message: "httpGet() request failed with status code ${response?.status}"]
+			}
+		}
+	}
+	catch (Exception e)
+	{
+		log.error "httpGet() failed with error ${e.message}"
+		return [status: "error", message: e.message]
+	}
+}
+
+
+/*
 	versionCheck
 
 	Purpose: Fetches the latest available module versions.
