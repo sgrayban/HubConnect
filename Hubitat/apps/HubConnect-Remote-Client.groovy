@@ -1450,7 +1450,7 @@ def dynamicDevicePage(params)
 			{
 				section(menuHeader("Select ${device.driver} Devices (${settings?."${device.selector}"?.size() ?: "0"} connected)"))
 				{
-        def capability = (settings."syn_${device.selector}" == null || settings."syn_${device.selector}" != "attribute") ? "device." + (settings."syn_${device.selector}" == "synthetic" ? "HubConnect" : "") + device.driver.replace(" ", "") : device.capability.contains("device.") ? device.capability : "capability.${device.capability}"
+        def capability = (device.synthetic && (settings."syn_${device.selector}" == null || settings."syn_${device.selector}" != "attribute")) ? "device." + (settings."syn_${device.selector}" == "synthetic" ? "HubConnect" : "") + device.driver.replace(" ", "") : device.capability.contains("device.") ? device.capability : "capability.${device.capability}"
         input "${device.selector}", "${capability}", title: "${device.driver}s ${device.attr}:", required: false, multiple: true, defaultValue: null
         if (device.synthetic) input "syn_${device.selector}", "enum", title: "DeviceMatch Selection Type? ${settings."${device.selector}"?.size() ? " (Changing may affect the availability of previously selected devices)" : ""}", options: [physical: "Device Driver", synthetic: "HubConnect Driver", attribute: "Primary Attribute"], required: false, defaultValue: "physical", submitOnChange: true
 
