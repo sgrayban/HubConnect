@@ -15,9 +15,9 @@
  *
  *
  */
-metadata 
+metadata
 {
-	definition(name: "HubConnect Iris Smart Plug", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Iris-SmartPlug.groovy")
+	definition(name: "HubConnect Iris SmartPlug", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Iris-SmartPlug.groovy")
 	{
 		capability "Switch"
 		capability "Power Meter"
@@ -35,7 +35,7 @@ metadata
 
 /*
 	installed
-    
+
 	Doesn't do much other than call initialize().
 */
 def installed()
@@ -46,7 +46,7 @@ def installed()
 
 /*
 	updated
-    
+
 	Doesn't do much other than call initialize().
 */
 def updated()
@@ -57,7 +57,7 @@ def updated()
 
 /*
 	initialize
-    
+
 	Doesn't do much other than call refresh().
 */
 def initialize()
@@ -68,7 +68,7 @@ def initialize()
 
 /*
 	parse
-    
+
 	In a virtual world this should never be called.
 */
 def parse(String description)
@@ -79,7 +79,7 @@ def parse(String description)
 
 /*
 	on
-    
+
 	Turns the device on.
 */
 def on()
@@ -91,7 +91,7 @@ def on()
 
 /*
 	off
-    
+
 	Turns the device off.
 */
 def off()
@@ -103,7 +103,7 @@ def off()
 
 /*
 	toggle
-    
+
 	Toggles the device on/off state.
 */
 def toggle()
@@ -115,7 +115,7 @@ def toggle()
 
 /*
 	refresh
-    
+
 	Refreshes the device by requesting an update from the client hub.
 */
 def refresh()
@@ -127,7 +127,7 @@ def refresh()
 
 /*
 	sync
-    
+
 	Synchronizes the device details with the parent.
 */
 def sync()

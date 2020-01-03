@@ -15,9 +15,9 @@
  *
  *
  */
-metadata 
+metadata
 {
-	definition(name: "HubConnect Smart Smoke/CO", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Smart-SmokeCO.groovy")
+	definition(name: "HubConnect Smart SmokeCO", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Smart-SmokeCO.groovy")
 	{
 		capability "Smoke Detector"
 		capability "Carbon Monoxide Detector"
@@ -30,7 +30,7 @@ metadata
 
 		attribute "pressure", "string"
 		attribute "version", "string"
-		
+
 		command "sync"
 	}
 }
@@ -38,7 +38,7 @@ metadata
 
 /*
 	installed
-    
+
 	Doesn't do much other than call initialize().
 */
 def installed()
@@ -49,7 +49,7 @@ def installed()
 
 /*
 	updated
-    
+
 	Doesn't do much other than call initialize().
 */
 def updated()
@@ -60,7 +60,7 @@ def updated()
 
 /*
 	initialize
-    
+
 	Doesn't do much other than call refresh().
 */
 def initialize()
@@ -71,7 +71,7 @@ def initialize()
 
 /*
 	parse
-    
+
 	In a virtual world this should never be called.
 */
 def parse(String description)
@@ -82,7 +82,7 @@ def parse(String description)
 
 /*
 	on
-    
+
 	Turns the device on.
 */
 def on()
@@ -94,7 +94,7 @@ def on()
 
 /*
 	off
-    
+
 	Turns the device off.
 */
 def off()
@@ -106,7 +106,7 @@ def off()
 
 /*
 	setLevel
-    
+
 	Sets the level to <level> over duration <duration>.
 */
 def setLevel(value, duration=1)
@@ -118,7 +118,7 @@ def setLevel(value, duration=1)
 
 /*
 	setColor
-    
+
 	Sets color by setting both hue and saturation.
 */
 def setColor(value)
@@ -132,7 +132,7 @@ def setColor(value)
 
 /*
 	setHue
-    
+
 	Sets the Hue.
 */
 def setHue(value)
@@ -144,7 +144,7 @@ def setHue(value)
 
 /*
 	setSaturation
-    
+
 	Sets the Saturation.
 */
 def setSaturation(value)
@@ -156,7 +156,7 @@ def setSaturation(value)
 
 /*
 	refresh
-    
+
 	Refreshes the device by requesting an update from the client hub.
 */
 def refresh()
@@ -168,7 +168,7 @@ def refresh()
 
 /*
 	sync
-    
+
 	Synchronizes the device details with the parent.
 */
 def sync()
