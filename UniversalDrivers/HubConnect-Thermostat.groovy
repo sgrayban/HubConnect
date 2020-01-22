@@ -15,18 +15,22 @@
  *
  *
  */
- 
-metadata 
+
+metadata
 {
 	definition(name: "HubConnect Thermostat", namespace: "shackrat", author: "Steve White", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Thermostat.groovy")
 	{
 		capability "Sensor"
 		capability "Thermostat"
 		capability "Temperature Measurement"
+		capability "Thermostat Cooling Setpoint"
+		capability "Thermostat Heating Setpoint"
+		capability "Thermostat OperatingState"
 		capability "Relative Humidity Measurement"
+		capability "Thermostat Setpoint"
 
-		attribute "version", "string"    
-		
+		attribute "version", "string"
+
 		command "sync"
 	}
 }
@@ -34,7 +38,7 @@ metadata
 
 /*
 	installed
-    
+
 	Doesn't do much other than call initialize().
 */
 def installed()
@@ -45,7 +49,7 @@ def installed()
 
 /*
 	updated
-    
+
 	Doesn't do much other than call initialize().
 */
 def updated()
@@ -56,18 +60,19 @@ def updated()
 
 /*
 	initialize
-    
+
 	Doesn't do much other than call refresh().
 */
 def initialize()
 {
-
+	unschedule()
+	runEvery1Minute("refreshLRM")
 }
 
 
 /*
 	parse
-    
+
 	In a virtual world this should never be called.
 */
 def parse(String description)
@@ -78,7 +83,7 @@ def parse(String description)
 
 /*
 	auto
-    
+
 	Sets the thermostat operating mode to "auto".
 */
 def auto()
@@ -90,7 +95,7 @@ def auto()
 
 /*
 	cool
-    
+
 	Sets the thermostat operating mode to "cool".
 */
 def cool()
@@ -102,7 +107,7 @@ def cool()
 
 /*
 	emergencyHeat
-    
+
 	Turns on emergency heat.
 */
 def emergencyHeat()
@@ -114,7 +119,7 @@ def emergencyHeat()
 
 /*
 	fanAuto
-    
+
 	Sets the fan operating mode to "auto".
 */
 def fanAuto()
@@ -126,7 +131,7 @@ def fanAuto()
 
 /*
 	fanCirculate
-    
+
 	Sets the fan operating mode to "circulate".
 */
 def fanCirculate()
@@ -138,7 +143,7 @@ def fanCirculate()
 
 /*
 	fanOn
-    
+
 	Sets the fan operating mode to "on".
 */
 def fanOn()
@@ -150,7 +155,7 @@ def fanOn()
 
 /*
 	heat
-    
+
 	Sets the thermostat operating mode to "heat".
 */
 def heat()
@@ -162,7 +167,7 @@ def heat()
 
 /*
 	off
-    
+
 	Sets the thermostat operating mode to "off".
 */
 def off()
@@ -174,7 +179,7 @@ def off()
 
 /*
 	setCoolingSetpoint
-    
+
 	Sets the cooling setpoint to <temperature>.
 */
 def setCoolingSetpoint(temperature)
@@ -186,7 +191,7 @@ def setCoolingSetpoint(temperature)
 
 /*
 	setHeatingSetpoint
-    
+
 	Sets the heating setpoint to <temperature>.
 */
 def setHeatingSetpoint(temperature)
@@ -198,7 +203,7 @@ def setHeatingSetpoint(temperature)
 
 /*
 	setSchedule
-    
+
 	Sets the thermostat schedule to <schedule> (JSON).
 */
 def setSchedule(schedule)
@@ -210,7 +215,7 @@ def setSchedule(schedule)
 
 /*
 	setThermostatFanMode
-    
+
 	Sets the fans operating mode to <fanmode>.
 */
 def setThermostatFanMode(fanmode)
@@ -222,7 +227,7 @@ def setThermostatFanMode(fanmode)
 
 /*
 	setThermostatMode
-    
+
 	Sets the thermostat operating mode to <thermostatmode>.
 */
 def setThermostatMode(thermostatmode)
@@ -233,8 +238,40 @@ def setThermostatMode(thermostatmode)
 
 
 /*
+	refreshLRM
+
+	Refreshes lastRunningMode for Google Home compatibility.
+*/
+def refreshLRM()
+{
+	// Update lastRunningMode based on mode and operatingstate
+	def lrm = getDataValue("lastRunningMode")
+	def tm = currentValue("thermostatMode")
+
+	if (tm == "cool" && lrm != "cool")
+	{
+		updateDataValue("lastRunningMode", "cool")
+	}
+	else
+	{
+		if (tm == "heat" && lrm != "heat")
+		{
+			updateDataValue("lastRunningMode", "heat")
+		}
+		else
+		{
+			if (tm == "auto" && lrm != "heat")
+			{
+				updateDataValue("lastRunningMode", "heat")
+			}
+		}
+	}
+}
+
+
+/*
 	sync
-    
+
 	Synchronizes the device details with the parent.
 */
 def sync()
@@ -243,4 +280,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "thermostat")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 2, build: 1]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 7, build: 0]}
