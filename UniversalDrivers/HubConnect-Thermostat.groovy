@@ -246,7 +246,7 @@ def refreshLRM()
 {
 	// Update lastRunningMode based on mode and operatingstate
 	def lrm = getDataValue("lastRunningMode")
-	def tm = currentValue("thermostatMode")
+	def tm = device.currentValue("thermostatOperatingState") ?: "" + device.currentValue("thermostatMode") ?: ""
 
 	if (tm == "cool" && lrm != "cool")
 	{
@@ -280,4 +280,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "thermostat")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 7, build: 0]}
+def getDriverVersion() {[platform: "Universal", major: 1, minor: 7, build: 1]}
