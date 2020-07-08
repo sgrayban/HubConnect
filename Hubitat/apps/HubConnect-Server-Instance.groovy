@@ -1051,8 +1051,9 @@ def connectPage()
 			if (clientIP) input "remoteType", "enum", title: "Type of Remote Hub:", options: [local: "Hubitat (LAN)", remote: "Hubitat (Internet)", homebridge: "HomeBridge", smartthings: "SmartThings"], required: false, defaultValue: null, submitOnChange: true
 			if (remoteType == "local" || remoteType == "homebridge") input "localConnectionType", "enum", title: "Local connect type:", options: [http: "Hubitat oAuth (http)", socket: "Hubitat Event Socket"], required: false, defaultValue: null, submitOnChange: true
 			if (clientIP && state.connectStatus == "online") input "updateDeviceIPs", "bool", title: "Update child devices with new IP address?", defaultValue: false
-            input name: "oauth_override", type: "bool", title: "Re-auth hub?", defaultValue: false // aloow the user to force a re-auth if moving to a new hub via DB restore
+			input name: "oauth_override", type: "bool", title: "Re-auth hub?", defaultValue: false // aloow the user to force a re-auth if moving to a new hub via DB restore
 		}
+		if (oauth_override) runIn(60,reauthOff) //turn off the re-auth flag - sgrayban
 		if (remoteType)
 		{
 			section(menuHeader("Connection Key"))
