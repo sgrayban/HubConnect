@@ -1500,7 +1500,7 @@ def initialize()
 
 def reauthOff(){
     log.info "Turning off re-auth toggle"
-	device.updateSetting("oauth_override",[value:"false",type:"bool"])
+	app.updateSetting("oauth_override",[value:"false",type:"bool"])
 }
 
 /*
